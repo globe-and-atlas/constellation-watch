@@ -28,6 +28,7 @@
   - `python3 -m pytest tests/ -v` (exit 0)
   - `python3 execution/emulator_check.py --dry-run` (exit 0)
 - **Issues found**: Fixed `-Werror` unused variable warnings in `globe.c` and `hud.c`.
+- **Verifier note**: Subagent spawning tool not present in tool schema; verified deterministically via clean `pebble build` (exit 0) and automated test suite (`tests/test_constellation.py`, 5/5 passing).
 - **Left undone**: None.
 - **Next**: Connect to physical watch or launch live QEMU emulator when ready.
 
@@ -38,3 +39,7 @@
 - 2026-09-28 12:25 — Generated 429-point continental coastline header from Natural Earth data
 - 2026-09-28 12:32 — Implemented C 3D globe engine, HUD, offline storage, PKJS TLE pipeline, and settings webview
 - 2026-09-28 12:35 — Clean `pebble build` (watchface.pbw) and 5/5 pytest passing
+
+## Checkpoint Log
+
+- 2026-09-28 12:35 — commit: feat: implement 3D GNSS constellation orbital watchapp for emery | README.md,directives/visualize_constellation.md,execution/build_earth_data.py,execution/emulator_check.py,knowledge/SESSION.md
