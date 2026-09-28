@@ -2,11 +2,11 @@
 
 ## Current Session
 
-**Goal:** Build constellation-watch: 3D GNSS constellation (GPS, Galileo, GLONASS, BeiDou) orbital visualizer for Pebble Time 2 (Emery) with 4-pane instrument deck.
-**Agent:** Antigravity AI
-**Handoff-from:** none
-**Handoff-type:** continuation
-**Status:** Completed
+**Goal:** Correct Constellation's orbit/sky model labels and precision/location claims, then verify and update GitHub and RePebble.
+**Agent:** OpenAI Codex (GPT-6)
+**Handoff-from:** Antigravity AI
+**Handoff-type:** cold-eyes
+**Status:** In progress — first-public accuracy contract recorded; source review found receiver telemetry is fabricated from orbital geometry.
 
 ## Handoff — 2026-09-28 12:45
 - **Completed**:
@@ -39,3 +39,6 @@
 ## Checkpoint Log
 
 - 2026-09-28 13:33 — commit: feat: add 4-pane instrument deck with polar skyplot, geodesy DOP matrix, and 2D ground track map | README.md,directives/visualize_constellation.md,knowledge/SESSION.md,task.md,tests/test_constellation.py
+- 2026-09-28 13:53 — commit: fix: prevent 32-bit signed integer overflow in orbit ring projection and increase ring steps to 48 | knowledge/SESSION.md,watchface/src/c/globe.c
+- 2026-09-28 14:38 — release: Constellation 0.1.1 — generate high-res store icons, capture 4 live Emery screenshots, publish to RePebble (app ID 10f46ae849224d009644f7e8)
+- 2026-09-28 — OpenAI Codex (GPT-6): began accuracy review; confirmed TLE geometry is currently presented with fabricated receiver fix, EPE, clock, and tracking labels; validation contract recorded before source edits.

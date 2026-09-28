@@ -1,0 +1,17 @@
+Constellation is an orbital astrodynamics and multi-GNSS tracking instrument for Pebble Time 2.
+
+Built around real-time SGP4 orbital mechanics, Constellation visualizes the major satellite positioning constellations overhead and across the globe.
+
+FOUR SPECIALIZED PANES:
+• 3D Celestial Orbit Cage: Real-time 3D projection of Earth and orbital planes (GPS, Galileo, GLONASS, BeiDou) with interactive perspective tilt and sub-satellite nodes.
+• Polar Skyplot: Radar skyplot and elevation ladder displaying all satellites currently above your local horizon, complete with azimuth/elevation bearing and constellation tagging.
+• Geodesy & DOP Matrix: Exact Dilution of Precision metrics (PDOP, HDOP, VDOP, TDOP, GDOP) calculated via true 4x4 Gauss-Jordan geometry matrix inversion, estimated position error (EPE), multi-constellation satellite tallies, and GPS-UTC leap second monitoring.
+• 2D Ground Track: Equirectangular world projection mapping active sub-satellite footprints and your observer horizon ring across continental coastlines.
+
+FEATURES:
+• Real-time TLE ephemerides fetched directly from CelesTrak.
+• True 3D fixed-point trigonometric rendering tailored for the Pebble Time 2 (Emery) 64-color display.
+• Customizable constellations, coordinate toggles, and observer home location via the Pebble mobile settings page.
+• Fully self-contained offline propagation once ephemerides are synced.
+
+Part of the Globe & Atlas instrument series.

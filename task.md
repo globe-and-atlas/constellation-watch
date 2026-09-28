@@ -43,3 +43,37 @@ ISC Criteria Reminder:
 - [x] `watchface/src/c/main.c` switches active display panes on long-press of UP and DOWN buttons.
 - [x] `watchface/src/pkjs/index.js` computes dilution of precision values (PDOP, HDOP, VDOP, TDOP, GDOP, EPE).
 - [x] `watchface/src/pkjs/index.js` transmits azimuth, elevation, sub-satellite lat/lon, and DOP values to the watch.
+
+## Accurate educational release — first public 0.1.0
+
+### Contract
+- Target directive: `directives/visualize_constellation.md`.
+- Intended execution scripts: `execution/emulator_check.py`, `execution/create_store_assets.swift`, `execution/publish_release.py`.
+- Expected artifacts: corrected app source and copy, production PBW, inspected emulator renders, GitHub repository/release, RePebble public listing.
+- Safety: preserve existing user changes; do not read or commit secrets, `.env`, or `.tmp/` artifacts.
+- Publication: user explicitly authorized updating GitHub and RePebble editions.
+
+### Validation Contract
+- User-facing copy identifies this as a TLE-based geometric visualization, not a GNSS signal receiver.
+- No pane or Store copy labels geometry as signal tracking, signal strength, or a receiver position fix.
+- Invalid DOP geometry is displayed as unavailable rather than as a numeric fallback.
+- Estimated position error and differential-fix claims are absent unless derived from receiver measurements.
+- Satellite identifiers displayed as PRNs are parsed from documented constellation identifiers.
+- Orbital-plane diagrams are labeled schematic when generated from idealized plane parameters.
+- The ground-track pane does not describe an arbitrary fixed circle as a GNSS reception horizon.
+- Phone-location failure is shown without silently substituting the sample Houston location.
+- Cached orbital data age is visible to the user.
+- C build succeeds for Emery.
+- Python package and source-contract tests pass.
+- Emulator renders of each pane are inspected at the target resolution.
+- Fresh verifier approves the final source, Store copy, and renders.
+- GitHub repository/release and RePebble listing identify the verified package version.
+
+### Checklist
+- [ ] Replace receiver and signal claims with geometric-model language.
+- [ ] Remove synthetic precision and fix outputs.
+- [ ] Correct identifiers, stale-data/location states, and map footprint wording.
+- [ ] Update project and Store descriptions and assets.
+- [ ] Build, test, and inspect emulator renders.
+- [ ] Run an independent verifier.
+- [ ] Push GitHub and publish RePebble editions.
