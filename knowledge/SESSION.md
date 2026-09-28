@@ -55,3 +55,6 @@
 - 2026-09-28 16:10 — public Constellation page now displays the corrected TLE-geometry description, no receiver/fix/EPE claim, schematic-ring language, DOP caveat, and age disclosure; verified in browser.
 - 2026-09-28 16:03 — commit: docs: track listing propagation gap | knowledge/ERRORS.md,knowledge/SESSION.md,task.md
 - 2026-09-28 16:07 — commit: docs: confirm public listing descriptions | knowledge/ERRORS.md,knowledge/SESSION.md,task.md
+
+- 2026-09-28 16:20 — Corrected Constellation 0.1.0 and 0.1.1 historical release notes in authenticated dashboard; stale task blocker corrected against visible live account/listing.
+- 2026-09-28 — Confirmed authenticated dashboard account Daniel Bally lists both apps. Corrected Constellation 0.1.0/0.1.1 release notes in dashboard; after reload and cache-busted public changelog navigation, public page still serves original GNSS radar/observer-footprint wording. Tracked public propagation as incomplete.

@@ -17,3 +17,5 @@ Record deterministic errors, root causes, and fixes here.
 - 2026-09-28: Developer dashboard editor accepts and retains the corrected Constellation description, but the public app page still serves its legacy description on a cache-busted fetch; investigate the dashboard-to-store propagation path before calling public copy complete.
 - 2026-09-28: Release closeout script expected an older exact SESSION.md sentence and stopped after updating the Constellation task checkbox; no other project was modified. Re-read current session status text and apply closeout manually.
 - 2026-09-28: Dashboard edits initially did not appear in the public listing; after propagation, browser verification confirmed the corrected Constellation text on the public app page.
+
+- 2026-09-28: Publisher dashboard reflects the corrected Constellation 0.1.0/0.1.1 release notes after reload, but the public RePebble changelog still serves the original `live satellite radar` and `observer footprint` claims after reload and a cache-busted URL. Public historical-note propagation remains unverified.

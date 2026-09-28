@@ -82,4 +82,6 @@ Legacy receiver-oriented checkboxes above document the previous implementation; 
 - [x] Run an independent verifier for the source, Store copy, and final renders.
 - [x] Push GitHub commit `5dc43a4` and publish release `v0.1.2`.
 - [x] Publish RePebble version `0.1.2` and verify its PBW bytes match the production build.
-- [ ] Update public RePebble description to remove legacy GNSS receiver claims; publisher portal currently has no managed apps for the authenticated `globe-and-atlas` account.
+- [x] Update public RePebble description to remove legacy GNSS receiver claims; verify the linked Daniel Bally publisher account serves the corrected copy.
+- [x] Correct historical 0.1.0 and 0.1.1 release notes to describe TLE-based geometry without live GNSS receiver claims.
+- [ ] Confirm the public RePebble changelog displays the corrected 0.1.0 and 0.1.1 release notes.
