@@ -35,3 +35,7 @@
 - 2026-09-28 12:32 — Implemented C 3D globe engine, HUD, offline storage, PKJS TLE pipeline, and settings webview
 - 2026-09-28 12:35 — Clean `pebble build` (watchface.pbw) and 5/5 pytest passing
 - 2026-09-28 12:45 — Implemented full 4-pane instrument deck (Polar Skyplot, Geodesy Matrix, Ground Track Map) with exact DOP matrix solver and 6/6 tests passing
+
+## Checkpoint Log
+
+- 2026-09-28 13:33 — commit: feat: add 4-pane instrument deck with polar skyplot, geodesy DOP matrix, and 2D ground track map | README.md,directives/visualize_constellation.md,knowledge/SESSION.md,task.md,tests/test_constellation.py

@@ -22,7 +22,7 @@ GColor globe_constellation_color(uint8_t constellation) {
   }
 }
 
-// 3D vector rotation using Pebble fixed-point trig
+// 3D vector rotation using Pebble fixed-point trig with 64-bit arithmetic to prevent overflow
 static void project_3d_point(
     int32_t x, int32_t y, int32_t z,
     int32_t cos_a, int32_t sin_a,
@@ -30,14 +30,14 @@ static void project_3d_point(
     int32_t *out_xp, int32_t *out_yp, int32_t *out_zp) {
   
   // Rotate around Z axis by angle alpha
-  int32_t x1 = (x * cos_a - y * sin_a) / TRIG_MAX_RATIO;
-  int32_t y1 = (x * sin_a + y * cos_a) / TRIG_MAX_RATIO;
+  int32_t x1 = (int32_t)(((int64_t)x * cos_a - (int64_t)y * sin_a) / TRIG_MAX_RATIO);
+  int32_t y1 = (int32_t)(((int64_t)x * sin_a + (int64_t)y * cos_a) / TRIG_MAX_RATIO);
   int32_t z1 = z;
 
   // Rotate around Y axis by angle beta (tilt latitude)
   *out_xp = y1;
-  *out_yp = (-x1 * sin_b + z1 * cos_b) / TRIG_MAX_RATIO;
-  *out_zp = ( x1 * cos_b + z1 * sin_b) / TRIG_MAX_RATIO;
+  *out_yp = (int32_t)((-(int64_t)x1 * sin_b + (int64_t)z1 * cos_b) / TRIG_MAX_RATIO);
+  *out_zp = (int32_t)(( (int64_t)x1 * cos_b + (int64_t)z1 * sin_b) / TRIG_MAX_RATIO);
 }
 
 void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
@@ -48,7 +48,6 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
   const int32_t r_orbit = 76;       // MEO orbit ring radius in pixels
 
   // Compute view rotation angles
-  // User home coordinates
   int16_t center_lat = (int16_t)(state->center_lat_deg / 10000);
   int16_t center_lon = (int16_t)(state->center_lon_deg / 10000);
 
@@ -91,16 +90,16 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
     int32_t sin_lon = sin_lookup(lon_trig);
 
     // ECEF coordinates on unit sphere * TRIG_MAX_RATIO
-    int32_t ex = (cos_lat * cos_lon) / TRIG_MAX_RATIO;
-    int32_t ey = (cos_lat * sin_lon) / TRIG_MAX_RATIO;
+    int32_t ex = (int32_t)(((int64_t)cos_lat * cos_lon) / TRIG_MAX_RATIO);
+    int32_t ey = (int32_t)(((int64_t)cos_lat * sin_lon) / TRIG_MAX_RATIO);
     int32_t ez = sin_lat;
 
     int32_t xp, yp, zp;
     project_3d_point(ex, ey, ez, cos_a, sin_a, cos_b, sin_b, &xp, &yp, &zp);
 
     if (zp >= 0) {
-      int16_t sx = cx + (int16_t)((xp * r_earth) / TRIG_MAX_RATIO);
-      int16_t sy = cy - (int16_t)((yp * r_earth) / TRIG_MAX_RATIO);
+      int16_t sx = cx + (int16_t)(((int64_t)xp * r_earth) / TRIG_MAX_RATIO);
+      int16_t sy = cy - (int16_t)(((int64_t)yp * r_earth) / TRIG_MAX_RATIO);
       GPoint curr_pt = GPoint(sx, sy);
 
       if (pen_down && prev_visible) {
@@ -117,23 +116,23 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
   {
     int32_t u_lat_trig = DEG_TO_TRIGANGLE(center_lat);
     int32_t u_lon_trig = DEG_TO_TRIGANGLE(center_lon);
-    int32_t ux = (cos_lookup(u_lat_trig) * cos_lookup(u_lon_trig)) / TRIG_MAX_RATIO;
-    int32_t uy = (cos_lookup(u_lat_trig) * sin_lookup(u_lon_trig)) / TRIG_MAX_RATIO;
+    int32_t ux = (int32_t)(((int64_t)cos_lookup(u_lat_trig) * cos_lookup(u_lon_trig)) / TRIG_MAX_RATIO);
+    int32_t uy = (int32_t)(((int64_t)cos_lookup(u_lat_trig) * sin_lookup(u_lon_trig)) / TRIG_MAX_RATIO);
     int32_t uz = sin_lookup(u_lat_trig);
 
     int32_t u_xp, u_yp, u_zp;
     project_3d_point(ux, uy, uz, cos_a, sin_a, cos_b, sin_b, &u_xp, &u_yp, &u_zp);
 
     if (u_zp >= 0) {
-      int16_t usx = cx + (int16_t)((u_xp * r_earth) / TRIG_MAX_RATIO);
-      int16_t usy = cy - (int16_t)((u_yp * r_earth) / TRIG_MAX_RATIO);
+      int16_t usx = cx + (int16_t)(((int64_t)u_xp * r_earth) / TRIG_MAX_RATIO);
+      int16_t usy = cy - (int16_t)(((int64_t)u_yp * r_earth) / TRIG_MAX_RATIO);
       graphics_context_set_fill_color(ctx, GColorChromeYellow);
       graphics_fill_circle(ctx, GPoint(usx, usy), 2);
     }
   }
 
-  // 4. Draw 3D Orbital Plane Rings
-  const int NUM_RING_STEPS = 24;
+  // 4. Draw 3D Orbital Plane Rings (Smooth 48-step circular projection)
+  const int NUM_RING_STEPS = 48;
   for (uint8_t p = 0; p < state->plane_count; p++) {
     PlaneRecord *plane = &state->planes[p];
     GColor plane_color = globe_constellation_color(plane->constellation);
@@ -157,28 +156,29 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
       int32_t cos_th = cos_lookup(theta_trig);
       int32_t sin_th = sin_lookup(theta_trig);
 
-      // Parametric orbit plane circle
-      int32_t term1 = (cos_raan * cos_th) / TRIG_MAX_RATIO;
-      int32_t term2 = (((sin_raan * sin_th) / TRIG_MAX_RATIO) * cos_inc) / TRIG_MAX_RATIO;
+      // Parametric orbit plane circle using int64_t to prevent 32-bit overflow
+      int32_t term1 = (int32_t)(((int64_t)cos_raan * cos_th) / TRIG_MAX_RATIO);
+      int32_t term2 = (int32_t)(((((int64_t)sin_raan * sin_th) / TRIG_MAX_RATIO) * cos_inc) / TRIG_MAX_RATIO);
       int32_t ox = term1 - term2;
 
-      int32_t term3 = (sin_raan * cos_th) / TRIG_MAX_RATIO;
-      int32_t term4 = (((cos_raan * sin_th) / TRIG_MAX_RATIO) * cos_inc) / TRIG_MAX_RATIO;
+      int32_t term3 = (int32_t)(((int64_t)sin_raan * cos_th) / TRIG_MAX_RATIO);
+      int32_t term4 = (int32_t)(((((int64_t)cos_raan * sin_th) / TRIG_MAX_RATIO) * cos_inc) / TRIG_MAX_RATIO);
       int32_t oy = term3 + term4;
 
-      int32_t oz = (sin_th * sin_inc) / TRIG_MAX_RATIO;
+      int32_t oz = (int32_t)(((int64_t)sin_th * sin_inc) / TRIG_MAX_RATIO);
 
       int32_t oxp, oyp, ozp;
       project_3d_point(ox, oy, oz, cos_a, sin_a, cos_b, sin_b, &oxp, &oyp, &ozp);
 
-      int16_t osx = cx + (int16_t)((oxp * r_orbit) / TRIG_MAX_RATIO);
-      int16_t osy = cy - (int16_t)((oyp * r_orbit) / TRIG_MAX_RATIO);
+      int16_t osx = cx + (int16_t)(((int64_t)oxp * r_orbit) / TRIG_MAX_RATIO);
+      int16_t osy = cy - (int16_t)(((int64_t)oyp * r_orbit) / TRIG_MAX_RATIO);
       GPoint ring_curr = GPoint(osx, osy);
 
       // Check if occluded directly behind solid Earth
+      int32_t dist_x = (int32_t)(((int64_t)oxp * r_orbit) / TRIG_MAX_RATIO);
+      int32_t dist_y = (int32_t)(((int64_t)oyp * r_orbit) / TRIG_MAX_RATIO);
       bool occluded_by_earth = (ozp < 0) &&
-          (((oxp * r_orbit) / TRIG_MAX_RATIO) * ((oxp * r_orbit) / TRIG_MAX_RATIO) +
-           ((oyp * r_orbit) / TRIG_MAX_RATIO) * ((oyp * r_orbit) / TRIG_MAX_RATIO) < (r_earth * r_earth));
+          ((dist_x * dist_x + dist_y * dist_y) < (r_earth * r_earth));
 
       if (!occluded_by_earth) {
         if (ring_prev_valid) {
@@ -206,13 +206,14 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
     project_3d_point(sx_in, sy_in, sz_in, cos_a, sin_a, cos_b, sin_b, &sxp, &syp, &szp);
 
     // Scaling: r_orbit is ~4.16x Earth radius
-    int16_t ssx = cx + (int16_t)((sxp * r_orbit) / 416);
-    int16_t ssy = cy - (int16_t)((syp * r_orbit) / 416);
+    int16_t ssx = cx + (int16_t)(((int64_t)sxp * r_orbit) / 416);
+    int16_t ssy = cy - (int16_t)(((int64_t)syp * r_orbit) / 416);
 
     // Eclipse check: behind Earth disk
+    int32_t s_dist_x = (int32_t)(((int64_t)sxp * r_orbit) / 416);
+    int32_t s_dist_y = (int32_t)(((int64_t)syp * r_orbit) / 416);
     bool is_eclipsed = (szp < -200) &&
-        (((sxp * r_orbit) / 416) * ((sxp * r_orbit) / 416) +
-         ((syp * r_orbit) / 416) * ((syp * r_orbit) / 416) < (r_earth * r_earth));
+        ((s_dist_x * s_dist_x + s_dist_y * s_dist_y) < (r_earth * r_earth));
 
     if (is_eclipsed) continue;
 
