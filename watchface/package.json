@@ -1,0 +1,44 @@
+{
+  "name": "constellation-watch",
+  "author": "Daniel Bally",
+  "version": "0.1.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Constellation",
+    "uuid": "66b519de-869e-481e-8f33-467271e981cd",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "messageKeys": [
+      "CMD",
+      "STATUS",
+      "SHOW_LABELS",
+      "ENABLE_GPS",
+      "ENABLE_GALILEO",
+      "ENABLE_GLONASS",
+      "ENABLE_BEIDOU",
+      "CENTER_LAT",
+      "CENTER_LON",
+      "SAT_COUNT",
+      "SAT_DATA",
+      "PLANE_COUNT",
+      "PLANE_DATA"
+    ],
+    "resources": {
+      "media": []
+    },
+    "capabilities": [
+      "location",
+      "configurable"
+    ]
+  }
+}

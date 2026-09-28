@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Constellation Settings</title>
+  <style>
+    :root {
+      --bg: #0e1117;
+      --card-bg: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --gps-amber: #e3b341;
+      --gal-cyan: #39c5cf;
+      --glo-green: #3fb950;
+      --bds-magenta: #bc8cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 18px;
+      line-height: 1.5;
+    }
+    header {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    p.subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .section {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+    .label-group {
+      display: flex;
+      flex-direction: column;
+    }
+    .label-name {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .label-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .badge-gps { background-color: var(--gps-amber); }
+    .badge-gal { background-color: var(--gal-cyan); }
+    .badge-glo { background-color: var(--glo-green); }
+    .badge-bds { background-color: var(--bds-magenta); }
+
+    /* Switch styling */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #21262d;
+      border: 1px solid var(--border);
+      transition: .2s ease;
+      border-radius: 26px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #8b949e;
+      transition: .2s ease;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #1f6feb;
+      border-color: #388bfd;
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+      background-color: #ffffff;
+    }
+
+    /* Input styling */
+    .input-group {
+      margin-top: 10px;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .input-group input[type="text"] {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #ffffff;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .input-group input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Buttons */
+    .btn-save {
+      display: block;
+      width: 100%;
+      background: #238636;
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      cursor: pointer;
+      margin-top: 20px;
+      margin-bottom: 24px;
+      transition: background .2s ease;
+    }
+    .btn-save:hover {
+      background: #2ea043;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CONSTELLATION</h1>
+    <p class="subtitle">3D GNSS Orbital Visualizer</p>
+  </header>
+
+  <div class="section">
+    <div class="section-title">Display Options</div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name">Show PRN Labels</span>
+        <span class="label-desc">Display satellite identifiers (G14, E05)</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="show_labels" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Constellations</div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name"><span class="badge badge-gps"></span>GPS (USA)</span>
+        <span class="label-desc">31 SVs, 6 orbital planes, 55° inc</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="enable_gps" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name"><span class="badge badge-gal"></span>Galileo (EU)</span>
+        <span class="label-desc">24+ SVs, 3 orbital planes, 56° inc</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="enable_galileo" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name"><span class="badge badge-glo"></span>GLONASS (Russia)</span>
+        <span class="label-desc">24 SVs, 3 orbital planes, 64.8° inc</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="enable_glonass">
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name"><span class="badge badge-bds"></span>BeiDou (China)</span>
+        <span class="label-desc">27+ MEO SVs, 3 orbital planes, 55° inc</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="enable_beidou">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Center Location</div>
+    <div class="toggle-row">
+      <div class="label-group">
+        <span class="label-name">Use Phone GPS</span>
+        <span class="label-desc">Center Earth on current mobile location</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="use_phone_gps" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div id="custom_coords" style="display:none; margin-top: 12px;">
+      <div class="input-group">
+        <label for="custom_lat">Home Latitude (°)</label>
+        <input type="text" id="custom_lat" placeholder="e.g. 29.7604">
+      </div>
+      <div class="input-group">
+        <label for="custom_lon">Home Longitude (°)</label>
+        <input type="text" id="custom_lon" placeholder="e.g. -95.3698">
+      </div>
+      <div class="hint">Custom coordinates override phone GPS when disabled.</div>
+    </div>
+  </div>
+
+  <button class="btn-save" id="save_btn">Save & Sync with Watch</button>
+
+  <script>
+    (function () {
+      function getQueryParam(variable, defaultValue) {
+        var query = location.search.substring(1);
+        var vars = query.split('&');
+        for (var i = 0; i < vars.length; i++) {
+          var pair = vars[i].split('=');
+          if (pair[0] === variable) {
+            return decodeURIComponent(pair[1]);
+          }
+        }
+        return defaultValue || false;
+      }
+
+      var phoneGpsCheck = document.getElementById('use_phone_gps');
+      var customCoordsDiv = document.getElementById('custom_coords');
+
+      function updateCoordVisibility() {
+        customCoordsDiv.style.display = phoneGpsCheck.checked ? 'none' : 'block';
+      }
+      phoneGpsCheck.addEventListener('change', updateCoordVisibility);
+
+      // Load initial values from query string or defaults
+      try {
+        var raw = getQueryParam('config', '');
+        if (raw) {
+          var cfg = JSON.parse(decodeURIComponent(raw));
+          if (cfg.show_labels !== undefined) document.getElementById('show_labels').checked = !!cfg.show_labels;
+          if (cfg.enable_gps !== undefined) document.getElementById('enable_gps').checked = !!cfg.enable_gps;
+          if (cfg.enable_galileo !== undefined) document.getElementById('enable_galileo').checked = !!cfg.enable_galileo;
+          if (cfg.enable_glonass !== undefined) document.getElementById('enable_glonass').checked = !!cfg.enable_glonass;
+          if (cfg.enable_beidou !== undefined) document.getElementById('enable_beidou').checked = !!cfg.enable_beidou;
+          if (cfg.use_phone_gps !== undefined) document.getElementById('use_phone_gps').checked = !!cfg.use_phone_gps;
+          if (cfg.custom_lat !== undefined) document.getElementById('custom_lat').value = cfg.custom_lat;
+          if (cfg.custom_lon !== undefined) document.getElementById('custom_lon').value = cfg.custom_lon;
+        }
+      } catch (e) {
+        console.log("Config parse error: " + e);
+      }
+      updateCoordVisibility();
+
+      document.getElementById('save_btn').addEventListener('click', function () {
+        var config = {
+          show_labels: document.getElementById('show_labels').checked,
+          enable_gps: document.getElementById('enable_gps').checked,
+          enable_galileo: document.getElementById('enable_galileo').checked,
+          enable_glonass: document.getElementById('enable_glonass').checked,
+          enable_beidou: document.getElementById('enable_beidou').checked,
+          use_phone_gps: document.getElementById('use_phone_gps').checked,
+          custom_lat: parseFloat(document.getElementById('custom_lat').value) || 0.0,
+          custom_lon: parseFloat(document.getElementById('custom_lon').value) || 0.0
+        };
+
+        var return_to = getQueryParam('return_to', 'pebblejs://close#');
+        var locationUri = return_to + encodeURIComponent(JSON.stringify(config));
+        window.location.href = locationUri;
+      });
+    })();
+  </script>
+</body>
+</html>
