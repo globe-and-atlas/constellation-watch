@@ -1,0 +1,7 @@
+{
+  "profile": "workflow-python",
+  "deploy": "local-only",
+  "runtime": "python",
+  "loop_mode": "data",
+  "knowledge_level": "heavy"
+}
