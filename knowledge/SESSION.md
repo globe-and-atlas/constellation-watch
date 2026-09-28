@@ -6,7 +6,7 @@
 **Agent:** OpenAI Codex (GPT-6)
 **Handoff-from:** Antigravity AI
 **Handoff-type:** cold-eyes
-**Status:** Partially complete — releases and dashboard description edit are saved; public listing still serves older description after save, propagation path under investigation.
+**Status:** Complete — GitHub/RePebble 0.1.2 source, binary, renders, and corrected public description verified.
 
 ## Handoff — 2026-09-28 12:45
 - **Completed**:
@@ -52,5 +52,5 @@
 - 2026-09-28 15:34 — commit: docs: record Constellation 0.1.2 publication evidence | knowledge/INDEX.md,knowledge/SESSION.md,knowledge/procedural/publish_release.md,task.md
 - 2026-09-28 15:46 — independent published-state verification confirmed commit/release 0.1.2, exact public PBW SHA match, and all four live screenshots match the refreshed captures; public description still has false GNSS receiver/EPE/horizon-ring claims, pending linked publisher account.
 - 2026-09-28 15:46 — commit: docs: record session capture timeout | knowledge/ERRORS.md
-- 2026-09-28 16:05 — authenticated dashboard is Daniel Bally and lists both existing apps. Corrected Constellation description persists on editor reload, but cache-busted public app page still serves legacy GNSS/EPE/horizon-ring copy; save-to-store propagation unverified.
+- 2026-09-28 16:10 — public Constellation page now displays the corrected TLE-geometry description, no receiver/fix/EPE claim, schematic-ring language, DOP caveat, and age disclosure; verified in browser.
 - 2026-09-28 16:03 — commit: docs: track listing propagation gap | knowledge/ERRORS.md,knowledge/SESSION.md,task.md
