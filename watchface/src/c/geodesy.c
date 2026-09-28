@@ -19,23 +19,28 @@ void geodesy_render(GContext *ctx, GRect bounds, GlobeState *state) {
 
   // Section 1 Header: DILUTION OF PRECISION
   graphics_context_set_text_color(ctx, GColorChromeYellow);
-  graphics_draw_text(ctx, "GEODESY & DILUTION OF PRECISION", s_bold_font,
+  graphics_draw_text(ctx, "DOP: GEOMETRY ONLY", s_bold_font,
                      GRect(x0, y0, w, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
   graphics_draw_line(ctx, GPoint(x0, y0 + 17), GPoint(x0 + w, y0 + 17));
 
-  // DOP Matrix Rows
+  // DOP describes satellite geometry only; this app does not contain a receiver.
   char row1[48], row2[48], row3[48];
-  snprintf(row1, sizeof(row1), "PDOP: %d.%d (3D)      HDOP: %d.%d (H)",
-           state->metrics.pdop_x10 / 10, state->metrics.pdop_x10 % 10,
-           state->metrics.hdop_x10 / 10, state->metrics.hdop_x10 % 10);
-  snprintf(row2, sizeof(row2), "VDOP: %d.%d (Vert)    TDOP: %d.%d (Time)",
-           state->metrics.vdop_x10 / 10, state->metrics.vdop_x10 % 10,
-           state->metrics.tdop_x10 / 10, state->metrics.tdop_x10 % 10);
-  snprintf(row3, sizeof(row3), "GDOP: %d.%d (Geom)    EPE:  ±%d.%dm",
-           state->metrics.gdop_x10 / 10, state->metrics.gdop_x10 % 10,
-           state->metrics.epe_dm / 10, state->metrics.epe_dm % 10);
+  if (state->metrics.dop_valid) {
+    snprintf(row1, sizeof(row1), "G-DOP: %d.%d  H: %d.%d",
+             state->metrics.gdop_x10 / 10, state->metrics.gdop_x10 % 10,
+             state->metrics.hdop_x10 / 10, state->metrics.hdop_x10 % 10);
+    snprintf(row2, sizeof(row2), "P: %d.%d  V: %d.%d  T: %d.%d",
+             state->metrics.pdop_x10 / 10, state->metrics.pdop_x10 % 10,
+             state->metrics.vdop_x10 / 10, state->metrics.vdop_x10 % 10,
+             state->metrics.tdop_x10 / 10, state->metrics.tdop_x10 % 10);
+  } else {
+    snprintf(row1, sizeof(row1), "GEOMETRY DOP: N/A");
+    snprintf(row2, sizeof(row2), "NEEDS 4+ DISTINCT DIRECTIONS");
+  }
+  if (state->tle_age_hours == 65535) snprintf(row3, sizeof(row3), "TLE ELEMENT AGE: N/A");
+  else snprintf(row3, sizeof(row3), "TLE ELEMENT AGE: %uh", state->tle_age_hours);
 
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, row1, s_med_font, GRect(x0, y0 + 20, w, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
@@ -50,36 +55,36 @@ void geodesy_render(GContext *ctx, GRect bounds, GlobeState *state) {
   graphics_draw_line(ctx, GPoint(x0, y_sec2 + 17), GPoint(x0 + w, y_sec2 + 17));
 
   // Tally counts
-  uint8_t gps_trk = 0, gps_fix = 0;
-  uint8_t gal_trk = 0, gal_fix = 0;
-  uint8_t glo_trk = 0, glo_fix = 0;
-  uint8_t bds_trk = 0, bds_fix = 0;
+  uint8_t gps_above = 0, gps_mask = 0;
+  uint8_t gal_above = 0, gal_mask = 0;
+  uint8_t glo_above = 0, glo_mask = 0;
+  uint8_t bds_above = 0, bds_mask = 0;
 
   for (uint8_t i = 0; i < state->sat_count; i++) {
     SatelliteRecord *sat = &state->satellites[i];
     bool in_view = (sat->flags & 0x01) != 0;
-    bool in_fix = (sat->flags & 0x02) != 0;
+    bool above_mask = (sat->flags & 0x02) != 0;
 
     if (sat->constellation == CONSTELLATION_GPS) {
-      if (in_view) gps_trk++;
-      if (in_fix) gps_fix++;
+      if (in_view) gps_above++;
+      if (above_mask) gps_mask++;
     } else if (sat->constellation == CONSTELLATION_GALILEO) {
-      if (in_view) gal_trk++;
-      if (in_fix) gal_fix++;
+      if (in_view) gal_above++;
+      if (above_mask) gal_mask++;
     } else if (sat->constellation == CONSTELLATION_GLONASS) {
-      if (in_view) glo_trk++;
-      if (in_fix) glo_fix++;
+      if (in_view) glo_above++;
+      if (above_mask) glo_mask++;
     } else if (sat->constellation == CONSTELLATION_BEIDOU) {
-      if (in_view) bds_trk++;
-      if (in_fix) bds_fix++;
+      if (in_view) bds_above++;
+      if (above_mask) bds_mask++;
     }
   }
 
   char c_gps[40], c_gal[40], c_glo[40], c_bds[40];
-  snprintf(c_gps, sizeof(c_gps), "● GPS: %2d TRK • %2d FIX (USA/NAV)", gps_trk, gps_fix);
-  snprintf(c_gal, sizeof(c_gal), "● GAL: %2d TRK • %2d FIX (EUR/GAL)", gal_trk, gal_fix);
-  snprintf(c_glo, sizeof(c_glo), "● GLO: %2d TRK • %2d FIX (RUS/GLO)", glo_trk, glo_fix);
-  snprintf(c_bds, sizeof(c_bds), "● BDS: %2d TRK • %2d FIX (CHN/BDS)", bds_trk, bds_fix);
+  snprintf(c_gps, sizeof(c_gps), "GPS >0°: %2d  >15°: %2d", gps_above, gps_mask);
+  snprintf(c_gal, sizeof(c_gal), "GAL >0°: %2d  >15°: %2d", gal_above, gal_mask);
+  snprintf(c_glo, sizeof(c_glo), "GLO >0°: %2d  >15°: %2d", glo_above, glo_mask);
+  snprintf(c_bds, sizeof(c_bds), "BDS >0°: %2d  >15°: %2d", bds_above, bds_mask);
 
   graphics_context_set_text_color(ctx, GColorChromeYellow);
   graphics_draw_text(ctx, c_gps, s_med_font, GRect(x0, y_sec2 + 20, w, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
@@ -90,15 +95,14 @@ void geodesy_render(GContext *ctx, GRect bounds, GlobeState *state) {
   graphics_context_set_text_color(ctx, GColorMagenta);
   graphics_draw_text(ctx, c_bds, s_med_font, GRect(x0, y_sec2 + 65, w, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
-  // Section 3: CLOCK & COORD TELEMETRY
+  // Data provenance and freshness; no receiver clock is available in this app.
   int16_t y_sec3 = y_sec2 + 86;
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
   graphics_draw_line(ctx, GPoint(x0, y_sec3), GPoint(x0 + w, y_sec3));
-
-  char clock_buf[48];
-  snprintf(clock_buf, sizeof(clock_buf), "GPS-UTC: +%ds   FIX: %s",
-           state->metrics.gps_leap_sec ? state->metrics.gps_leap_sec : 18,
-           (state->metrics.fix_type == 4) ? "3D-DIFF" : (state->metrics.fix_type == 3) ? "3D-FIX" : "2D-FIX");
+  char age_buf[48];
+  if (state->tle_age_hours == 65535) snprintf(age_buf, sizeof(age_buf), "TLE ELEMENT AGE: N/A");
+  else snprintf(age_buf, sizeof(age_buf), "TLE ELEMENT AGE: %uh", state->tle_age_hours);
   graphics_context_set_text_color(ctx, GColorLightGray);
-  graphics_draw_text(ctx, clock_buf, s_med_font, GRect(x0, y_sec3 + 2, w, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  graphics_draw_text(ctx, age_buf, s_med_font, GRect(x0, y_sec3 + 2, w, 15), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+
 }

@@ -8,3 +8,5 @@
 | [ERRORS.md](ERRORS.md) | log | Errors, causes, and fixes |
 
 Add domain or procedural files as real knowledge emerges.
+
+| [domain/release_metadata.md](domain/release_metadata.md) | domain | Pebble package metadata source and public release verification limits |

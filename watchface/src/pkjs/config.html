@@ -187,11 +187,11 @@
     <div class="section-title">Display Options</div>
     <div class="toggle-row">
       <div class="label-group">
-        <span class="label-name">Show PRN Labels</span>
-        <span class="label-desc">Display satellite identifiers (G14, E05)</span>
+        <span class="label-name">Show catalog IDs</span>
+        <span class="label-desc">Display NORAD catalog numbers from the element data</span>
       </div>
       <label class="switch">
-        <input type="checkbox" id="show_labels" checked>
+        <input type="checkbox" id="show_labels">
         <span class="slider"></span>
       </label>
     </div>
@@ -202,7 +202,7 @@
     <div class="toggle-row">
       <div class="label-group">
         <span class="label-name"><span class="badge badge-gps"></span>GPS (USA)</span>
-        <span class="label-desc">31 SVs, 6 orbital planes, 55° inc</span>
+        <span class="label-desc">GNSS satellite system; plane rings are schematic</span>
       </div>
       <label class="switch">
         <input type="checkbox" id="enable_gps" checked>
@@ -212,7 +212,7 @@
     <div class="toggle-row">
       <div class="label-group">
         <span class="label-name"><span class="badge badge-gal"></span>Galileo (EU)</span>
-        <span class="label-desc">24+ SVs, 3 orbital planes, 56° inc</span>
+        <span class="label-desc">GNSS satellite system; plane rings are schematic</span>
       </div>
       <label class="switch">
         <input type="checkbox" id="enable_galileo" checked>
@@ -222,7 +222,7 @@
     <div class="toggle-row">
       <div class="label-group">
         <span class="label-name"><span class="badge badge-glo"></span>GLONASS (Russia)</span>
-        <span class="label-desc">24 SVs, 3 orbital planes, 64.8° inc</span>
+        <span class="label-desc">GNSS satellite system; plane rings are schematic</span>
       </div>
       <label class="switch">
         <input type="checkbox" id="enable_glonass">
@@ -232,7 +232,7 @@
     <div class="toggle-row">
       <div class="label-group">
         <span class="label-name"><span class="badge badge-bds"></span>BeiDou (China)</span>
-        <span class="label-desc">27+ MEO SVs, 3 orbital planes, 55° inc</span>
+        <span class="label-desc">GNSS satellite system; plane rings are schematic</span>
       </div>
       <label class="switch">
         <input type="checkbox" id="enable_beidou">
@@ -317,10 +317,17 @@
           enable_glonass: document.getElementById('enable_glonass').checked,
           enable_beidou: document.getElementById('enable_beidou').checked,
           use_phone_gps: document.getElementById('use_phone_gps').checked,
-          custom_lat: parseFloat(document.getElementById('custom_lat').value) || 0.0,
-          custom_lon: parseFloat(document.getElementById('custom_lon').value) || 0.0
+          custom_lat: document.getElementById('custom_lat').value.trim(),
+          custom_lon: document.getElementById('custom_lon').value.trim()
         };
 
+        if (!config.use_phone_gps) {
+          var lat = Number(config.custom_lat), lon = Number(config.custom_lon);
+          if (config.custom_lat === '' || config.custom_lon === '' || !isFinite(lat) || lat < -90 || lat > 90 || !isFinite(lon) || lon < -180 || lon > 180) {
+            alert('Enter latitude -90 to 90 and longitude -180 to 180.'); return;
+          }
+          config.custom_lat = lat; config.custom_lon = lon;
+        }
         var return_to = getQueryParam('return_to', 'pebblejs://close#');
         var locationUri = return_to + encodeURIComponent(JSON.stringify(config));
         window.location.href = locationUri;

@@ -42,3 +42,7 @@
 - 2026-09-28 13:53 — commit: fix: prevent 32-bit signed integer overflow in orbit ring projection and increase ring steps to 48 | knowledge/SESSION.md,watchface/src/c/globe.c
 - 2026-09-28 14:38 — release: Constellation 0.1.1 — generate high-res store icons, capture 4 live Emery screenshots, publish to RePebble (app ID 10f46ae849224d009644f7e8)
 - 2026-09-28 — OpenAI Codex (GPT-6): began accuracy review; confirmed TLE geometry is currently presented with fabricated receiver fix, EPE, clock, and tracking labels; validation contract recorded before source edits.
+- 2026-09-28 14:43 — commit: feat: Constellation 0.1.1 — store assets, Emery screenshots, and RePebble publish automation | execution/create_store_assets.swift,execution/publish_release.py,knowledge/ERRORS.md,knowledge/SESSION.md,store/description.txt
+- 2026-09-28 — OpenAI Codex (GPT-6): removed synthetic GNSS receiver metrics, corrected catalog IDs, DOP invalid states, location fallback, arbitrary footprint; 4 Node and 8 Python tests pass; clean Emery build and 4 panes visually reviewed.
+- 2026-09-28 — All four clean Emery panes captured and visually inspected; current public elements show TLE age explicitly; release text and package version 0.1.2 dry-run aligned.
+- 2026-09-28 — OpenAI Codex (GPT-6): cold-eyes review caught stale/truncated Constellation Store renders; refreshed all four from final Emery build, shortened headings, moved elevation legend clear of bars, and added exact process cleanup. Final 9 pytest and 4 Node tests pass; Store UUID maps to app 10f46ae849224d009644f7e8.

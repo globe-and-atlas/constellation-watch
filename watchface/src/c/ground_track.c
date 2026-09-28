@@ -67,15 +67,12 @@ void ground_track_render(GContext *ctx, GRect bounds, GlobeState *state) {
   int16_t u_lon = (int16_t)(state->center_lon_deg / 10000);
   GPoint u_pt = coord_to_screen(u_lat, u_lon, map_rect);
 
-  // Horizon visibility footprint circle (~2500 km radius ~22 degrees on map)
-  const int16_t fp_rx = (22 * map_rect.size.w) / 360;
-  const int16_t fp_ry = (22 * map_rect.size.h) / 180;
-  graphics_context_set_stroke_color(ctx, GColorChromeYellow);
-  graphics_draw_circle(ctx, u_pt, (fp_rx + fp_ry) / 2);
-
-  // Crosshair
-  graphics_draw_line(ctx, GPoint(u_pt.x - 3, u_pt.y), GPoint(u_pt.x + 3, u_pt.y));
-  graphics_draw_line(ctx, GPoint(u_pt.x, u_pt.y - 3), GPoint(u_pt.x, u_pt.y + 3));
+  // Only the observer location is plotted; no approximate visibility footprint is implied.
+  if (state->has_location) {
+    graphics_context_set_stroke_color(ctx, GColorChromeYellow);
+    graphics_draw_line(ctx, GPoint(u_pt.x - 3, u_pt.y), GPoint(u_pt.x + 3, u_pt.y));
+    graphics_draw_line(ctx, GPoint(u_pt.x, u_pt.y - 3), GPoint(u_pt.x, u_pt.y + 3));
+  }
 
   // 3. Draw Sub-Satellite Ground Points
   for (uint8_t s = 0; s < state->sat_count; s++) {
@@ -101,14 +98,18 @@ void ground_track_render(GContext *ctx, GRect bounds, GlobeState *state) {
   // 4. Telemetry Footer Details
   int16_t y_details = map_rect.origin.y + map_rect.size.h + 8;
   graphics_context_set_text_color(ctx, GColorChromeYellow);
-  graphics_draw_text(ctx, "SUB-SATELLITE GROUND TRACKS", s_bold_font,
+  graphics_draw_text(ctx, "SUB-SATELLITE POINTS", s_bold_font,
                      GRect(map_rect.origin.x, y_details, map_rect.size.w, 15),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 
   char coord_str[48];
-  snprintf(coord_str, sizeof(coord_str), "HOME: %+d.%02d°, %+d.%02d° (YOU)",
-           u_lat, abs((int16_t)(state->center_lat_deg % 10000) / 100),
-           u_lon, abs((int16_t)(state->center_lon_deg % 10000) / 100));
+  if (state->has_location) {
+    snprintf(coord_str, sizeof(coord_str), "CENTER: %+d.%02d°, %+d.%02d° (YOU)",
+             u_lat, abs((int16_t)(state->center_lat_deg % 10000) / 100),
+             u_lon, abs((int16_t)(state->center_lon_deg % 10000) / 100));
+  } else {
+    snprintf(coord_str, sizeof(coord_str), "LOCATION UNAVAILABLE • NO CENTER");
+  }
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, coord_str, s_micro_font,
                      GRect(map_rect.origin.x, y_details + 16, map_rect.size.w, 15),

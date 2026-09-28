@@ -25,7 +25,7 @@ def test_package_json_structure():
         "SAT_COUNT", "SAT_DATA",
         "PLANE_COUNT", "PLANE_DATA",
         "PDOP", "HDOP", "VDOP", "TDOP", "GDOP",
-        "EPE_M", "FIX_TYPE", "GPS_LEAP"
+        "DOP_VALID", "TLE_AGE_H"
     ]
     for rk in required_keys:
         assert rk in keys, f"Missing messageKey: {rk}"
@@ -41,7 +41,10 @@ def test_config_html_options():
     assert "enable_beidou" in content
     assert "custom_lat" in content
     assert "custom_lon" in content
+    assert "id=\"show_labels\" checked" not in content
     assert "pebblejs://close#" in content
+    assert "NORAD catalog numbers" in content
+    assert "latitude -90 to 90" in content
 
 def test_panes_source_files_exist():
     c_dir = WATCHFACE / "src" / "c"
@@ -67,7 +70,40 @@ def test_earth_coastlines_header():
 
 def test_pebble_build():
     cmd = ["pebble", "build"]
-    res = subprocess.run(cmd, cwd=WATCHFACE, capture_output=True, text=True)
+    res = subprocess.run(cmd, cwd=WATCHFACE, capture_output=True, text=True, check=False)
     assert res.returncode == 0, f"pebble build failed: {res.stderr}"
     pbw_file = WATCHFACE / "build" / "watchface.pbw"
     assert pbw_file.exists(), "watchface.pbw not created"
+
+
+def test_source_does_not_claim_receiver_measurements():
+    pkjs = (WATCHFACE / "src/pkjs/index.js").read_text()
+    assert "show_labels: false" in pkjs
+    geodesy = (WATCHFACE / "src/c/geodesy.c").read_text()
+    skyplot = (WATCHFACE / "src/c/skyplot.c").read_text()
+    assert "Estimated Position Error" not in pkjs + geodesy
+    assert "3D-DIFF" not in pkjs + geodesy
+    assert "GPS-UTC" not in geodesy
+    assert '"ELEVATION"' in skyplot
+    assert "sat->catalog_id" in (WATCHFACE / "src/c/globe.c").read_text()
+    assert "FALLBACK" not in pkjs
+
+
+def test_js_geometry_contract():
+    result = subprocess.run(["node", "--test", str(ROOT / "watchface/test/accuracy.test.js")],
+                            cwd=ROOT, capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_public_copy_describes_the_actual_tle_model():
+    readme = (ROOT / "README.md").read_text().lower()
+    store = (ROOT / "store/description.txt").read_text().lower()
+    for copy in (readme, store):
+        assert "not a gnss receiver" in copy
+        assert "not fitted" in copy or "schematic" in copy
+        assert "bars show elevation only" in copy or "bars represent elevation only, not signal strength" in copy
+    assert "accuracy estimate" in readme
+    assert "not sent to celestrak" in store
+    assert len((ROOT / "store/description.txt").read_text()) <= 1600
+    assert "receiver fix" not in store
+    assert "epe" not in store

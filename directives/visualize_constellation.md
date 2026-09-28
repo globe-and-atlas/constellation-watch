@@ -50,3 +50,8 @@ Deliver a responsive, low-power, instrument-grade multi-pane field deck on the P
 - Memory footprint fits within Pebble's 64 KB app heap (~115 KB free heap).
 - Offline launch displays cached telemetry without waiting for AppMessage.
 - Seamless cycling between all 4 panes without memory leaks or graphic corruption.
+
+
+## 2026-09-28 accuracy correction
+
+This app propagates public GP/TLE elements to visualize orbit geometry. It is not connected to a GNSS receiver and must not call modeled satellites tracked/locked, claim a position fix or estimated position error, or display GPS receiver clock telemetry. DOP may be shown only as geometric DOP derived from modeled line-of-sight directions, with singular/insufficient geometry shown as N/A. Elevation bars are not signal strength. The plane rings are schematic and the map has no fixed-radius reception footprint. Label TLE-derived age and explain that TLE data carry no accuracy estimate. A location error must not substitute a sample city.

@@ -9,26 +9,7 @@
 static Window *s_main_window;
 static Layer *s_canvas_layer;
 static GlobeState s_globe_state;
-static char s_status_text[32] = "GNSS CAGE";
-
-// Default orbital planes fixture (used before phone connects)
-static void init_default_planes(void) {
-  s_globe_state.plane_count = 9;
-  
-  // 6 GPS Planes (A-F), 55 deg inclination, 60 deg RAAN spacing
-  for (int i = 0; i < 6; i++) {
-    s_globe_state.planes[i].constellation = CONSTELLATION_GPS;
-    s_globe_state.planes[i].inc_deg = 55;
-    s_globe_state.planes[i].raan_deg = (i * 60) - 180;
-  }
-
-  // 3 Galileo Planes (A-C), 56 deg inclination, 120 deg RAAN spacing
-  for (int i = 0; i < 3; i++) {
-    s_globe_state.planes[6 + i].constellation = CONSTELLATION_GALILEO;
-    s_globe_state.planes[6 + i].inc_deg = 56;
-    s_globe_state.planes[6 + i].raan_deg = (i * 120) - 150;
-  }
-}
+static char s_status_text[32] = "WAITING FOR PHONE";
 
 static void send_cmd(uint8_t cmd) {
   DictionaryIterator *iter;
@@ -67,7 +48,7 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
 
     case PANE_GEODESY_DOP:
       geodesy_render(ctx, content_bounds, &s_globe_state);
-      header_label = "GEODESY & PRECISION";
+      header_label = "GEOMETRY DOP";
       break;
 
     case PANE_GROUND_TRACK:
@@ -133,7 +114,7 @@ static void down_long_click_handler(ClickRecognizerRef recognizer, void *context
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  // Toggle PRN labels
+  // Toggle NORAD catalog-number labels
   s_globe_state.show_labels = !s_globe_state.show_labels;
   storage_save_state(&s_globe_state);
   layer_mark_dirty(s_canvas_layer);
@@ -166,6 +147,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   Tuple *status_tuple = dict_find(iterator, MESSAGE_KEY_STATUS);
   if (status_tuple) {
     snprintf(s_status_text, sizeof(s_status_text), "%s", status_tuple->value->cstring);
+    if (strcmp(s_status_text, "LOCATION UNAVAILABLE") == 0) { s_globe_state.has_location = false; s_globe_state.sat_count = 0; s_globe_state.plane_count = 0; s_globe_state.metrics.dop_valid = false; }
   }
 
   Tuple *labels_tuple = dict_find(iterator, MESSAGE_KEY_SHOW_LABELS);
@@ -174,13 +156,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   }
 
   Tuple *lat_tuple = dict_find(iterator, MESSAGE_KEY_CENTER_LAT);
-  if (lat_tuple) {
-    s_globe_state.center_lat_deg = lat_tuple->value->int32;
-  }
-
   Tuple *lon_tuple = dict_find(iterator, MESSAGE_KEY_CENTER_LON);
-  if (lon_tuple) {
+  if (lat_tuple && lon_tuple) {
+    s_globe_state.center_lat_deg = lat_tuple->value->int32;
     s_globe_state.center_lon_deg = lon_tuple->value->int32;
+    s_globe_state.has_location = true;
   }
 
   Tuple *plane_count_tuple = dict_find(iterator, MESSAGE_KEY_PLANE_COUNT);
@@ -188,8 +168,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (plane_count_tuple && plane_data_tuple) {
     uint8_t count = (uint8_t)plane_count_tuple->value->int32;
     if (count > MAX_PLANES) count = MAX_PLANES;
-    s_globe_state.plane_count = count;
-    memcpy(s_globe_state.planes, plane_data_tuple->value->data, count * sizeof(PlaneRecord));
+    if (plane_data_tuple->length >= count * sizeof(PlaneRecord)) {
+      s_globe_state.plane_count = count;
+      memcpy(s_globe_state.planes, plane_data_tuple->value->data, count * sizeof(PlaneRecord));
+    }
   }
 
   Tuple *sat_count_tuple = dict_find(iterator, MESSAGE_KEY_SAT_COUNT);
@@ -197,34 +179,29 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   if (sat_count_tuple && sat_data_tuple) {
     uint8_t count = (uint8_t)sat_count_tuple->value->int32;
     if (count > MAX_SATELLITES) count = MAX_SATELLITES;
-    s_globe_state.sat_count = count;
-    memcpy(s_globe_state.satellites, sat_data_tuple->value->data, count * sizeof(SatelliteRecord));
+    if (sat_data_tuple->length >= count * sizeof(SatelliteRecord)) {
+      s_globe_state.sat_count = count;
+      memcpy(s_globe_state.satellites, sat_data_tuple->value->data, count * sizeof(SatelliteRecord));
+    }
   }
 
-  // DOP & Geodesy Telemetry
+  Tuple *age_tuple = dict_find(iterator, MESSAGE_KEY_TLE_AGE_H);
+  if (age_tuple) s_globe_state.tle_age_hours = (uint16_t)age_tuple->value->int32;
+
+  Tuple *valid_tuple = dict_find(iterator, MESSAGE_KEY_DOP_VALID);
+  if (valid_tuple) s_globe_state.metrics.dop_valid = valid_tuple->value->int32 != 0;
+
+  // Geometry-only DOP; no receiver fix, accuracy, or GPS clock is measured.
   Tuple *pdop_tuple = dict_find(iterator, MESSAGE_KEY_PDOP);
   if (pdop_tuple) s_globe_state.metrics.pdop_x10 = (uint16_t)pdop_tuple->value->int32;
-
   Tuple *hdop_tuple = dict_find(iterator, MESSAGE_KEY_HDOP);
   if (hdop_tuple) s_globe_state.metrics.hdop_x10 = (uint16_t)hdop_tuple->value->int32;
-
   Tuple *vdop_tuple = dict_find(iterator, MESSAGE_KEY_VDOP);
   if (vdop_tuple) s_globe_state.metrics.vdop_x10 = (uint16_t)vdop_tuple->value->int32;
-
   Tuple *tdop_tuple = dict_find(iterator, MESSAGE_KEY_TDOP);
   if (tdop_tuple) s_globe_state.metrics.tdop_x10 = (uint16_t)tdop_tuple->value->int32;
-
   Tuple *gdop_tuple = dict_find(iterator, MESSAGE_KEY_GDOP);
   if (gdop_tuple) s_globe_state.metrics.gdop_x10 = (uint16_t)gdop_tuple->value->int32;
-
-  Tuple *epe_tuple = dict_find(iterator, MESSAGE_KEY_EPE_M);
-  if (epe_tuple) s_globe_state.metrics.epe_dm = (uint16_t)epe_tuple->value->int32;
-
-  Tuple *fix_tuple = dict_find(iterator, MESSAGE_KEY_FIX_TYPE);
-  if (fix_tuple) s_globe_state.metrics.fix_type = (uint8_t)fix_tuple->value->int32;
-
-  Tuple *leap_tuple = dict_find(iterator, MESSAGE_KEY_GPS_LEAP);
-  if (leap_tuple) s_globe_state.metrics.gps_leap_sec = (uint8_t)leap_tuple->value->int32;
 
   storage_save_state(&s_globe_state);
   layer_mark_dirty(s_canvas_layer);
@@ -259,15 +236,8 @@ static void init(void) {
     s_globe_state.rot_yaw_deg = 0;
     s_globe_state.rot_pitch_deg = 0;
     s_globe_state.sat_count = 0;
-    s_globe_state.metrics.pdop_x10 = 14;
-    s_globe_state.metrics.hdop_x10 = 9;
-    s_globe_state.metrics.vdop_x10 = 11;
-    s_globe_state.metrics.tdop_x10 = 8;
-    s_globe_state.metrics.gdop_x10 = 16;
-    s_globe_state.metrics.epe_dm = 28; // 2.8m
-    s_globe_state.metrics.fix_type = 4; // 3D-DIFF
-    s_globe_state.metrics.gps_leap_sec = 18;
-    init_default_planes();
+    s_globe_state.metrics.dop_valid = false;
+    s_globe_state.tle_age_hours = 65535;
   }
 
   s_main_window = window_create();

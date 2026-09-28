@@ -1,7 +1,7 @@
 {
   "name": "constellation-watch",
   "author": "Daniel Bally",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "keywords": [
     "pebble-app"
   ],
@@ -37,9 +37,8 @@
       "VDOP",
       "TDOP",
       "GDOP",
-      "EPE_M",
-      "FIX_TYPE",
-      "GPS_LEAP"
+      "DOP_VALID",
+      "TLE_AGE_H"
     ],
     "resources": {
       "media": []

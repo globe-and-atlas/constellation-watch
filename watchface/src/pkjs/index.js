@@ -9,14 +9,14 @@ var CONSTELLATION = { GPS: 1, GALILEO: 2, GLONASS: 3, BEIDOU: 4 };
 
 // Default configuration
 var defaultConfig = {
-  show_labels: true,
+  show_labels: false,
   enable_gps: true,
   enable_galileo: true,
   enable_glonass: false,
   enable_beidou: false,
   use_phone_gps: true,
-  custom_lat: 29.7604,
-  custom_lon: -95.3698
+  custom_lat: null,
+  custom_lon: null
 };
 
 function loadConfig() {
@@ -94,20 +94,15 @@ function parseTleCatalog(lines, constType) {
       continue;
     }
 
-    var prn = 0;
-    var prnMatch = name.match(/PRN\s*(\d+)/i);
-    if (prnMatch) {
-      prn = parseInt(prnMatch[1], 10);
-    } else {
-      var numMatch = name.match(/(\d+)/);
-      prn = numMatch ? (parseInt(numMatch[1], 10) % 100) : ((sats.length + 1) % 100);
-    }
+    var catalogMatch = l1.match(/^1 (\d{5})/);
+    if (!catalogMatch) continue;
+    var catalogId = parseInt(catalogMatch[1], 10);
 
     try {
       var satrec = satellite.twoline2satrec(l1, l2);
       sats.push({
         constellation: constType,
-        prn: prn,
+        catalogId: catalogId,
         satrec: satrec
       });
     } catch (e) {}
@@ -117,58 +112,48 @@ function parseTleCatalog(lines, constType) {
 
 function getLocation(config, cb) {
   if (!config.use_phone_gps) {
-    return cb(null, { latitude: config.custom_lat, longitude: config.custom_lon });
+    var lat = Number(config.custom_lat);
+    var lon = Number(config.custom_lon);
+    if (!isFinite(lat) || lat < -90 || lat > 90 || !isFinite(lon) || lon < -180 || lon > 180) {
+      return cb('Enter valid latitude (-90 to 90) and longitude (-180 to 180).');
+    }
+    return cb(null, { latitude: lat, longitude: lon });
   }
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      function (pos) {
-        cb(null, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-      },
-      function (err) {
-        console.log('GPS error, using custom/fallback: ' + err.message);
-        cb(null, { latitude: config.custom_lat, longitude: config.custom_lon });
-      },
-      { timeout: 10000, maximumAge: 600000 }
-    );
-  } else {
-    cb(null, { latitude: config.custom_lat, longitude: config.custom_lon });
-  }
+  if (!navigator.geolocation) return cb('Phone location is unavailable.');
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    cb(null, { latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+  }, function (err) {
+    cb('Phone location unavailable: ' + err.message);
+  }, { timeout: 10000, maximumAge: 600000 });
 }
 
 // 4x4 matrix inversion for Dilution of Precision (DOP)
 function invert4x4(m) {
-  var a = [];
-  var inv = [];
-  for (var r = 0; r < 4; r++) {
-    a[r] = m[r].slice();
-    inv[r] = [0, 0, 0, 0];
-    inv[r][r] = 1;
-  }
+  var a = m.map(function (row, r) {
+    var out = row.slice();
+    for (var c = 0; c < 4; c++) out.push(r === c ? 1 : 0);
+    return out;
+  });
   for (var i = 0; i < 4; i++) {
-    var pivot = a[i][i];
-    if (Math.abs(pivot) < 1e-9) return null;
-    for (var j = 0; j < 4; j++) {
-      a[i][j] /= pivot;
-      inv[i][j] /= pivot;
+    var pivotRow = i;
+    for (var r = i + 1; r < 4; r++) {
+      if (Math.abs(a[r][i]) > Math.abs(a[pivotRow][i])) pivotRow = r;
     }
+    if (Math.abs(a[pivotRow][i]) < 1e-10) return null;
+    var temp = a[i]; a[i] = a[pivotRow]; a[pivotRow] = temp;
+    var pivot = a[i][i];
+    for (var j = 0; j < 8; j++) a[i][j] /= pivot;
     for (var k = 0; k < 4; k++) {
-      if (k !== i) {
-        var factor = a[k][i];
-        for (var l = 0; l < 4; l++) {
-          a[k][l] -= factor * a[i][l];
-          inv[k][l] -= factor * inv[i][l];
-        }
-      }
+      if (k === i) continue;
+      var factor = a[k][i];
+      for (var c = 0; c < 8; c++) a[k][c] -= factor * a[i][c];
     }
   }
-  return inv;
+  return a.map(function (row) { return row.slice(4); });
 }
 
 function computeDOP(visibleVectors) {
-  if (visibleVectors.length < 4) {
-    return { pdop: 2.8, hdop: 1.5, vdop: 2.4, tdop: 1.4, gdop: 3.1, epe: 4.5 };
-  }
+  if (visibleVectors.length < 4) return null;
   var A = visibleVectors;
   var ATA = [ [0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0] ];
   for (var i = 0; i < 4; i++) {
@@ -180,15 +165,14 @@ function computeDOP(visibleVectors) {
   }
   var Q = invert4x4(ATA);
   if (!Q || Q[0][0] <= 0 || Q[1][1] <= 0 || Q[2][2] <= 0 || Q[3][3] <= 0) {
-    return { pdop: 2.5, hdop: 1.4, vdop: 2.1, tdop: 1.3, gdop: 2.8, epe: 4.2 };
+    return null;
   }
   var hdop = Math.sqrt(Q[0][0] + Q[1][1]);
   var vdop = Math.sqrt(Q[2][2]);
   var pdop = Math.sqrt(Q[0][0] + Q[1][1] + Q[2][2]);
   var tdop = Math.sqrt(Q[3][3]);
   var gdop = Math.sqrt(pdop * pdop + tdop * tdop);
-  var epe = hdop * 3.0; // UERE ~ 3m nominal
-  return { pdop: pdop, hdop: hdop, vdop: vdop, tdop: tdop, gdop: gdop, epe: epe };
+  return { pdop: pdop, hdop: hdop, vdop: vdop, tdop: tdop, gdop: gdop };
 }
 
 function packSatellites(sats, userLoc, now) {
@@ -234,8 +218,8 @@ function packSatellites(sats, userLoc, now) {
       flags |= 0x01; // Above horizon
       visibleCount++;
     }
-    if (look.elevation > 0.2618) { // >15° elevation
-      flags |= 0x02; // In primary fix geometry
+    if (look.elevation > 0.2618) { // >15° elevation geometry threshold
+      flags |= 0x02; // Above the selected 15-degree geometry mask
       // Add line-of-sight unit vector for DOP calculation
       var dx = -Math.cos(look.elevation) * Math.sin(look.azimuth);
       var dy = -Math.cos(look.elevation) * Math.cos(look.azimuth);
@@ -250,8 +234,9 @@ function packSatellites(sats, userLoc, now) {
 
     // 1 byte constellation
     packedBytes.push(item.constellation & 0xFF);
-    // 1 byte PRN
-    packedBytes.push(item.prn & 0xFF);
+    // 2-byte NORAD catalog number from TLE line 1
+    packedBytes.push(item.catalogId & 0xFF);
+    packedBytes.push((item.catalogId >> 8) & 0xFF);
 
     // 2 bytes int16_t nx (little endian)
     packedBytes.push(nx & 0xFF);
@@ -284,12 +269,15 @@ function packSatellites(sats, userLoc, now) {
   }
 
   var dop = computeDOP(visibleVectors);
+  var oldestEpoch = sats.length ? Math.min.apply(null, sats.map(function (item) { return (item.satrec.jdsatepoch + (item.satrec.jdsatepochF || 0)); })) : NaN;
+  var ageHours = isFinite(oldestEpoch) ? Math.max(0, Math.floor((now.getTime() / 86400000 + 2440587.5 - oldestEpoch) * 24)) : 65535;
 
   return {
     bytes: packedBytes,
     count: validSatCount,
     visible: visibleCount,
-    dop: dop
+    dop: dop,
+    ageHours: ageHours
   };
 }
 
@@ -354,6 +342,11 @@ function refreshConstellation() {
   var config = loadConfig();
 
   getLocation(config, function (err, loc) {
+    if (err) {
+      Pebble.sendAppMessage({ STATUS: 'LOCATION UNAVAILABLE', SAT_COUNT: 0, SAT_DATA: [], PLANE_COUNT: 0, PLANE_DATA: [], DOP_VALID: 0 });
+      console.log(err);
+      return;
+    }
     var fetchQueue = [];
     if (config.enable_gps) fetchQueue.push({ name: 'gps-ops', type: CONSTELLATION.GPS });
     if (config.enable_galileo) fetchQueue.push({ name: 'galileo', type: CONSTELLATION.GALILEO });
@@ -369,7 +362,7 @@ function refreshConstellation() {
         var planeResult = packPlanes(config, now);
         var dop = satResult.dop;
 
-        var statusMsg = satResult.visible + ' VISIBLE • FIX';
+        var statusMsg = satResult.visible + ' ABOVE HORIZON';
         var appMsg = {
           STATUS: statusMsg,
           SHOW_LABELS: config.show_labels ? 1 : 0,
@@ -379,18 +372,17 @@ function refreshConstellation() {
           PLANE_DATA: planeResult.bytes,
           SAT_COUNT: satResult.count,
           SAT_DATA: satResult.bytes,
-          PDOP: Math.round(dop.pdop * 10),
-          HDOP: Math.round(dop.hdop * 10),
-          VDOP: Math.round(dop.vdop * 10),
-          TDOP: Math.round(dop.tdop * 10),
-          GDOP: Math.round(dop.gdop * 10),
-          EPE_M: Math.round(dop.epe * 10),
-          FIX_TYPE: (satResult.visible >= 4) ? 4 : 2,
-          GPS_LEAP: 18
+          PDOP: dop ? Math.round(dop.pdop * 10) : 0,
+          HDOP: dop ? Math.round(dop.hdop * 10) : 0,
+          VDOP: dop ? Math.round(dop.vdop * 10) : 0,
+          TDOP: dop ? Math.round(dop.tdop * 10) : 0,
+          GDOP: dop ? Math.round(dop.gdop * 10) : 0,
+          DOP_VALID: dop ? 1 : 0,
+          TLE_AGE_H: Math.min(65535, satResult.ageHours)
         };
 
         Pebble.sendAppMessage(appMsg, function () {
-          console.log('Constellation update sent successfully: ' + satResult.count + ' satellites, PDOP: ' + dop.pdop.toFixed(1));
+          console.log('Constellation update sent successfully: ' + satResult.count + ' satellites, geometric DOP: ' + (dop ? dop.gdop.toFixed(1) : 'N/A'));
         }, function (e) {
           console.log('AppMessage send error: ' + JSON.stringify(e));
         });
@@ -442,7 +434,7 @@ Pebble.addEventListener('showConfiguration', function () {
     '</style></head><body>' +
     '<h1>CONSTELLATION SETTINGS</h1>' +
     '<div class="card">' +
-    '<div class="row"><label>Show PRN Labels</label><input type="checkbox" id="show_labels"' + (cfg.show_labels ? ' checked' : '') + '></div>' +
+    '<div class="row"><label>Show catalog IDs</label><input type="checkbox" id="show_labels"' + (cfg.show_labels ? ' checked' : '') + '></div>' +
     '</div>' +
     '<div class="card">' +
     '<div class="row"><label style="color:#e3b341">● GPS (USA)</label><input type="checkbox" id="enable_gps"' + (cfg.enable_gps ? ' checked' : '') + '></div>' +
@@ -453,8 +445,8 @@ Pebble.addEventListener('showConfiguration', function () {
     '<div class="card">' +
     '<div class="row"><label>Use Phone GPS</label><input type="checkbox" id="use_phone_gps"' + (cfg.use_phone_gps ? ' checked' : '') + '></div>' +
     '<div id="coords_div" style="' + (cfg.use_phone_gps ? 'display:none;' : '') + 'margin-top:10px">' +
-    '<label>Home Latitude (°)</label><input type="text" id="custom_lat" value="' + cfg.custom_lat + '">' +
-    '<label style="margin-top:8px;display:block">Home Longitude (°)</label><input type="text" id="custom_lon" value="' + cfg.custom_lon + '">' +
+    '<label>Home Latitude (°)</label><input type="text" id="custom_lat" value="' + (cfg.custom_lat == null ? '' : cfg.custom_lat) + '">' +
+    '<label style="margin-top:8px;display:block">Home Longitude (°)</label><input type="text" id="custom_lon" value="' + (cfg.custom_lon == null ? '' : cfg.custom_lon) + '">' +
     '</div></div>' +
     '<button class="btn" id="save_btn">Save & Sync with Watch</button>' +
     '<script>' +
@@ -469,9 +461,10 @@ Pebble.addEventListener('showConfiguration', function () {
     'enable_glonass:document.getElementById("enable_glonass").checked,' +
     'enable_beidou:document.getElementById("enable_beidou").checked,' +
     'use_phone_gps:document.getElementById("use_phone_gps").checked,' +
-    'custom_lat:parseFloat(document.getElementById("custom_lat").value)||0,' +
-    'custom_lon:parseFloat(document.getElementById("custom_lon").value)||0' +
+    'custom_lat:document.getElementById("custom_lat").value,' +
+    'custom_lon:document.getElementById("custom_lon").value' +
     '};' +
+    'if(!res.use_phone_gps){var lat=Number(res.custom_lat),lon=Number(res.custom_lon);if(res.custom_lat.trim()===""||res.custom_lon.trim()===""||!isFinite(lat)||lat < -90||lat > 90||!isFinite(lon)||lon < -180||lon > 180){alert("Enter latitude -90 to 90 and longitude -180 to 180.");return;}res.custom_lat=lat;res.custom_lon=lon;}' +
     'window.location.href="pebblejs://close#"+encodeURIComponent(JSON.stringify(res));' +
     '});' +
     '</script></body></html>'
@@ -490,3 +483,5 @@ Pebble.addEventListener('webviewclosed', function (e) {
     }
   }
 });
+
+if (typeof module !== "undefined") module.exports = { computeDOP: computeDOP, parseTleCatalog: parseTleCatalog, getLocation: getLocation };

@@ -1,6 +1,8 @@
 #include "storage.h"
+#include <string.h>
 
 bool storage_load_state(GlobeState *state) {
+  memset(state, 0, sizeof(*state));
   if (!persist_exists(PERSIST_KEY_STATE)) {
     return false;
   }

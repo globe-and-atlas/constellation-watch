@@ -1,6 +1,1 @@
-Initial release of Constellation for Pebble Time 2 (Emery).
-- 3D Celestial Orbit Cage visualizing global GNSS constellation planes (GPS, Galileo, GLONASS, BeiDou).
-- Polar Skyplot with azimuth/elevation bearing and live satellite radar.
-- Geodesy & DOP Matrix with real-time 4x4 Gauss-Jordan geometry matrix inversion (PDOP, HDOP, VDOP, TDOP, GDOP).
-- 2D Equirectangular Ground Track projection with observer footprint.
-- Real-time SGP4 propagation and CelesTrak ephemeris updates via PebbleKit JS.
+0.1.2: Describes this as a TLE-based orbital geometry visualization, removes fabricated receiver/fix/accuracy claims, reports invalid geometry as unavailable, labels schematic orbit rings, removes the arbitrary map footprint, and shows TLE age.

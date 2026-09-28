@@ -44,11 +44,13 @@ ISC Criteria Reminder:
 - [x] `watchface/src/pkjs/index.js` computes dilution of precision values (PDOP, HDOP, VDOP, TDOP, GDOP, EPE).
 - [x] `watchface/src/pkjs/index.js` transmits azimuth, elevation, sub-satellite lat/lon, and DOP values to the watch.
 
-## Accurate educational release — first public 0.1.0
+## Accuracy-corrected update — 0.1.2
+
+Legacy receiver-oriented checkboxes above document the previous implementation; they are superseded by this correction and must not be used as claims about 0.1.2.
 
 ### Contract
 - Target directive: `directives/visualize_constellation.md`.
-- Intended execution scripts: `execution/emulator_check.py`, `execution/create_store_assets.swift`, `execution/publish_release.py`.
+- Intended execution scripts: `execution/emulator_check.py`, `execution/create_store_assets.swift`, `execution/publish_release.py`, `execution/verify_release.py`.
 - Expected artifacts: corrected app source and copy, production PBW, inspected emulator renders, GitHub repository/release, RePebble public listing.
 - Safety: preserve existing user changes; do not read or commit secrets, `.env`, or `.tmp/` artifacts.
 - Publication: user explicitly authorized updating GitHub and RePebble editions.
@@ -70,10 +72,10 @@ ISC Criteria Reminder:
 - GitHub repository/release and RePebble listing identify the verified package version.
 
 ### Checklist
-- [ ] Replace receiver and signal claims with geometric-model language.
-- [ ] Remove synthetic precision and fix outputs.
-- [ ] Correct identifiers, stale-data/location states, and map footprint wording.
-- [ ] Update project and Store descriptions and assets.
-- [ ] Build, test, and inspect emulator renders.
+- [x] Replace receiver and signal claims with geometric-model language.
+- [x] Remove synthetic precision and fix outputs.
+- [x] Correct identifiers, stale-data/location states, and map footprint wording.
+- [x] Update project and Store descriptions and assets.
+- [x] Build, test, and inspect emulator renders.
 - [ ] Run an independent verifier.
 - [ ] Push GitHub and publish RePebble editions.

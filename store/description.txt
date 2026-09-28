@@ -1,17 +1,11 @@
-Constellation is an orbital astrodynamics and multi-GNSS tracking instrument for Pebble Time 2.
+An educational orbital-geometry watchapp for Pebble Time 2. Constellation propagates public CelesTrak GP/TLE element sets with SGP4 to plot modeled GPS, Galileo, GLONASS, and BeiDou positions. It is not a GNSS receiver: it does not receive satellite signals, produce a navigation fix, or estimate real-world positioning accuracy. TLE elements do not include an accuracy estimate.
 
-Built around real-time SGP4 orbital mechanics, Constellation visualizes the major satellite positioning constellations overhead and across the globe.
+FOUR VIEWS
+• Orbit globe: modeled satellite positions; orbital-plane rings are schematic guides, not fitted to the TLEs.
+• Skyplot: modeled azimuth and elevation from the selected center. Bars show elevation only, not signal strength.
+• Geometry: DOP derived from modeled directions; singular or insufficient geometry displays N/A. DOP describes geometry, not position accuracy.
+• World map: simplified coastlines, selected center, and modeled sub-satellite points; no reception-radius circle.
 
-FOUR SPECIALIZED PANES:
-• 3D Celestial Orbit Cage: Real-time 3D projection of Earth and orbital planes (GPS, Galileo, GLONASS, BeiDou) with interactive perspective tilt and sub-satellite nodes.
-• Polar Skyplot: Radar skyplot and elevation ladder displaying all satellites currently above your local horizon, complete with azimuth/elevation bearing and constellation tagging.
-• Geodesy & DOP Matrix: Exact Dilution of Precision metrics (PDOP, HDOP, VDOP, TDOP, GDOP) calculated via true 4x4 Gauss-Jordan geometry matrix inversion, estimated position error (EPE), multi-constellation satellite tallies, and GPS-UTC leap second monitoring.
-• 2D Ground Track: Equirectangular world projection mapping active sub-satellite footprints and your observer horizon ring across continental coastlines.
+Phone coordinates are used on-device and are not sent to CelesTrak. Choose phone location or validated manual coordinates. A location failure is shown without a substitute location. TLE age is displayed; fresh elements require internet access. Cached elements can be viewed offline.
 
-FEATURES:
-• Real-time TLE ephemerides fetched directly from CelesTrak.
-• True 3D fixed-point trigonometric rendering tailored for the Pebble Time 2 (Emery) 64-color display.
-• Customizable constellations, coordinate toggles, and observer home location via the Pebble mobile settings page.
-• Fully self-contained offline propagation once ephemerides are synced.
-
-Part of the Globe & Atlas instrument series.
+Controls: hold UP/DOWN to change panes; click UP/DOWN on the globe to rotate; SELECT toggles catalog-number labels; hold SELECT refreshes. Data: CelesTrak GP/TLE. Source: https://github.com/globe-and-atlas/constellation-watch

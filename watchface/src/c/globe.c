@@ -112,8 +112,8 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
     }
   }
 
-  // 3. Draw Observer "YOU" Beacon
-  {
+  // 3. Draw Observer "YOU" Beacon only after valid coordinates arrive.
+  if (state->has_location) {
     int32_t u_lat_trig = DEG_TO_TRIGANGLE(center_lat);
     int32_t u_lon_trig = DEG_TO_TRIGANGLE(center_lon);
     int32_t ux = (int32_t)(((int64_t)cos_lookup(u_lat_trig) * cos_lookup(u_lon_trig)) / TRIG_MAX_RATIO);
@@ -133,6 +133,7 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
 
   // 4. Draw 3D Orbital Plane Rings (Smooth 48-step circular projection)
   const int NUM_RING_STEPS = 48;
+  // Plane rings are a schematic orientation guide, not fitted to the displayed TLEs.
   for (uint8_t p = 0; p < state->plane_count; p++) {
     PlaneRecord *plane = &state->planes[p];
     GColor plane_color = globe_constellation_color(plane->constellation);
@@ -192,7 +193,12 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
     }
   }
 
-  // 5. Draw Satellites & Labels
+  graphics_context_set_text_color(ctx, GColorLightGray);
+  graphics_draw_text(ctx, "SCHEMATIC ORBITS", s_micro_font,
+                     GRect(bounds.origin.x + 4, bounds.origin.y + bounds.size.h - 15, bounds.size.w - 8, 15),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // 5. Draw TLE-propagated satellite positions & optional catalog labels
   for (uint8_t s = 0; s < state->sat_count; s++) {
     SatelliteRecord *sat = &state->satellites[s];
     GColor sat_color = globe_constellation_color(sat->constellation);
@@ -231,7 +237,7 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
       graphics_fill_rect(ctx, GRect(ssx - 1, ssy - 1, 2, 2), 0, GCornerNone);
     }
 
-    // Optional PRN Label (e.g. "G14", "E05")
+    // Optional TLE NORAD catalog number (not a GNSS PRN)
     if (state->show_labels && above_horizon) {
       char label_buf[8];
       char prefix = 'S';
@@ -240,11 +246,11 @@ void globe_render(GContext *ctx, GRect bounds, GlobeState *state) {
       else if (sat->constellation == CONSTELLATION_GLONASS) prefix = 'R';
       else if (sat->constellation == CONSTELLATION_BEIDOU) prefix = 'C';
 
-      snprintf(label_buf, sizeof(label_buf), "%c%02d", prefix, sat->prn);
+      snprintf(label_buf, sizeof(label_buf), "%c%05u", prefix, sat->catalog_id);
 
       graphics_context_set_text_color(ctx, sat_color);
       graphics_draw_text(ctx, label_buf, s_micro_font,
-                         GRect(ssx + 4, ssy - 8, 30, 16),
+                         GRect(ssx + 4, ssy - 8, 42, 16),
                          GTextOverflowModeTrailingEllipsis,
                          GTextAlignmentLeft, NULL);
     }

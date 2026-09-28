@@ -34,7 +34,7 @@ void skyplot_render(GContext *ctx, GRect bounds, GlobeState *state) {
   graphics_draw_text(ctx, "E", s_label_font, GRect(cx + r_radar + 3, cy - 8, 12, 14),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // 2. Plot Visible Satellites
+  // 2. Plot positions above the geometric horizon, not receiver-tracked signals
   uint8_t vis_sats[16];
   uint8_t vis_count = 0;
 
@@ -58,11 +58,11 @@ void skyplot_render(GContext *ctx, GRect bounds, GlobeState *state) {
     int16_t sy = cy - (int16_t)((dist * cos_lookup(az_trig)) / TRIG_MAX_RATIO);
 
     GColor col = globe_constellation_color(sat->constellation);
-    bool in_fix = (sat->flags & 0x02) != 0;
+    bool above_geometry_mask = (sat->flags & 0x02) != 0;
 
-    // Draw 10x10 PRN badge
+    // Draw a symbol for elevation above/below the 15-degree geometry mask
     GRect badge_rect = GRect(sx - 5, sy - 5, 11, 11);
-    if (in_fix) {
+    if (above_geometry_mask) {
       graphics_context_set_fill_color(ctx, col);
       graphics_fill_rect(ctx, badge_rect, 1, GCornersAll);
       graphics_context_set_text_color(ctx, GColorBlack);
@@ -72,16 +72,12 @@ void skyplot_render(GContext *ctx, GRect bounds, GlobeState *state) {
       graphics_context_set_text_color(ctx, col);
     }
 
-    char prn_str[4];
-    snprintf(prn_str, sizeof(prn_str), "%d", sat->prn);
-    graphics_draw_text(ctx, prn_str, s_micro_font,
-                       GRect(sx - 8, sy - 7, 16, 14),
-                       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 
-  // 3. Bottom Signal / Elevation Histogram Ledger
+  // 3. Bottom geometric elevation bars (not signal strength)
   int16_t bar_y_base = bounds.origin.y + bounds.size.h - 18;
   graphics_context_set_stroke_color(ctx, GColorDarkGray);
+  graphics_draw_text(ctx, "ELEVATION", s_micro_font, GRect(4, bar_y_base + 1, 82, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   graphics_draw_line(ctx, GPoint(4, bar_y_base), GPoint(bounds.size.w - 4, bar_y_base));
 
   uint8_t bars_to_show = (vis_count > 10) ? 10 : vis_count;
@@ -95,20 +91,15 @@ void skyplot_render(GContext *ctx, GRect bounds, GlobeState *state) {
     graphics_context_set_fill_color(ctx, bar_col);
     graphics_fill_rect(ctx, GRect(bar_x, bar_y_base - bar_h, 8, bar_h), 0, GCornerNone);
 
-    // PRN number below
-    char prn_sub[4];
-    snprintf(prn_sub, sizeof(prn_sub), "%02d", sat->prn);
-    graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, prn_sub, s_micro_font,
-                       GRect(bar_x - 3, bar_y_base + 1, 14, 14),
-                       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   }
 
   // Right side DOP mini readout
   char dop_summary[32];
-  snprintf(dop_summary, sizeof(dop_summary), "PDOP %d.%d\nHDOP %d.%d",
-           state->metrics.pdop_x10 / 10, state->metrics.pdop_x10 % 10,
-           state->metrics.hdop_x10 / 10, state->metrics.hdop_x10 % 10);
+  if (state->metrics.dop_valid) {
+    snprintf(dop_summary, sizeof(dop_summary), "G-DOP %d.%d", state->metrics.gdop_x10 / 10, state->metrics.gdop_x10 % 10);
+  } else {
+    snprintf(dop_summary, sizeof(dop_summary), "G-DOP N/A");
+  }
   graphics_context_set_text_color(ctx, GColorChromeYellow);
   graphics_draw_text(ctx, dop_summary, s_micro_font,
                      GRect(bounds.size.w - 62, bar_y_base - 26, 60, 26),
