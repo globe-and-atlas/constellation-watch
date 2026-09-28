@@ -54,3 +54,4 @@
 - 2026-09-28 15:46 — commit: docs: record session capture timeout | knowledge/ERRORS.md
 - 2026-09-28 16:10 — public Constellation page now displays the corrected TLE-geometry description, no receiver/fix/EPE claim, schematic-ring language, DOP caveat, and age disclosure; verified in browser.
 - 2026-09-28 16:03 — commit: docs: track listing propagation gap | knowledge/ERRORS.md,knowledge/SESSION.md,task.md
+- 2026-09-28 16:07 — commit: docs: confirm public listing descriptions | knowledge/ERRORS.md,knowledge/SESSION.md,task.md
