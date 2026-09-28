@@ -51,3 +51,4 @@
 - 2026-09-28 15:37 — public listing now resolves to 0.1.2; public PBW metadata and SHA-256 match local production artifact. Four public screenshot images match their corresponding new Store captures with only changing clock pixels. Public description still contains legacy GNSS tracking text; Dev Portal profile `globe-and-atlas` shows no apps to manage.
 - 2026-09-28 15:34 — commit: docs: record Constellation 0.1.2 publication evidence | knowledge/INDEX.md,knowledge/SESSION.md,knowledge/procedural/publish_release.md,task.md
 - 2026-09-28 15:46 — independent published-state verification confirmed commit/release 0.1.2, exact public PBW SHA match, and all four live screenshots match the refreshed captures; public description still has false GNSS receiver/EPE/horizon-ring claims, pending linked publisher account.
+- 2026-09-28 15:46 — commit: docs: record session capture timeout | knowledge/ERRORS.md
