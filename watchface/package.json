@@ -31,7 +31,15 @@
       "SAT_COUNT",
       "SAT_DATA",
       "PLANE_COUNT",
-      "PLANE_DATA"
+      "PLANE_DATA",
+      "PDOP",
+      "HDOP",
+      "VDOP",
+      "TDOP",
+      "GDOP",
+      "EPE_M",
+      "FIX_TYPE",
+      "GPS_LEAP"
     ],
     "resources": {
       "media": []

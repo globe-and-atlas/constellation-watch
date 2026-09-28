@@ -23,7 +23,9 @@ def test_package_json_structure():
         "ENABLE_GPS", "ENABLE_GALILEO", "ENABLE_GLONASS", "ENABLE_BEIDOU",
         "CENTER_LAT", "CENTER_LON",
         "SAT_COUNT", "SAT_DATA",
-        "PLANE_COUNT", "PLANE_DATA"
+        "PLANE_COUNT", "PLANE_DATA",
+        "PDOP", "HDOP", "VDOP", "TDOP", "GDOP",
+        "EPE_M", "FIX_TYPE", "GPS_LEAP"
     ]
     for rk in required_keys:
         assert rk in keys, f"Missing messageKey: {rk}"
@@ -40,6 +42,21 @@ def test_config_html_options():
     assert "custom_lat" in content
     assert "custom_lon" in content
     assert "pebblejs://close#" in content
+
+def test_panes_source_files_exist():
+    c_dir = WATCHFACE / "src" / "c"
+    expected_files = [
+        "globe.h", "globe.c",
+        "skyplot.h", "skyplot.c",
+        "geodesy.h", "geodesy.c",
+        "ground_track.h", "ground_track.c",
+        "hud.h", "hud.c",
+        "storage.h", "storage.c",
+        "earth_land.h", "main.c"
+    ]
+    for ef in expected_files:
+        path = c_dir / ef
+        assert path.exists(), f"Missing C component: {ef}"
 
 def test_earth_coastlines_header():
     header_file = WATCHFACE / "src" / "c" / "earth_land.h"

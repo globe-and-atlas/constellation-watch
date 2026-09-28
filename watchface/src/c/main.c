@@ -1,5 +1,8 @@
 #include <pebble.h>
 #include "globe.h"
+#include "skyplot.h"
+#include "geodesy.h"
+#include "ground_track.h"
 #include "hud.h"
 #include "storage.h"
 
@@ -7,7 +10,6 @@ static Window *s_main_window;
 static Layer *s_canvas_layer;
 static GlobeState s_globe_state;
 static char s_status_text[32] = "GNSS CAGE";
-static char s_footer_text[32] = "";
 
 // Default orbital planes fixture (used before phone connects)
 static void init_default_planes(void) {
@@ -43,30 +45,90 @@ static void canvas_update_proc(Layer *layer, GContext *ctx) {
   // Layout boundaries
   GRect header_bounds = GRect(0, 0, bounds.size.w, 20);
   GRect footer_bounds = GRect(0, bounds.size.h - 20, bounds.size.w, 20);
-  GRect globe_bounds = GRect(0, 20, bounds.size.w, bounds.size.h - 40);
+  GRect content_bounds = GRect(0, 20, bounds.size.w, bounds.size.h - 40);
 
   // Background
   graphics_context_set_fill_color(ctx, GColorBlack);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
-  // Render 3D Globe & Orbital Cage
-  globe_render(ctx, globe_bounds, &s_globe_state);
+  const char *header_label = s_status_text;
+
+  // Render the selected instrument pane
+  switch (s_globe_state.active_pane) {
+    case PANE_ORBIT_CAGE:
+      globe_render(ctx, content_bounds, &s_globe_state);
+      header_label = s_status_text;
+      break;
+
+    case PANE_POLAR_SKYPLOT:
+      skyplot_render(ctx, content_bounds, &s_globe_state);
+      header_label = "SKYPLOT • 0°/45°/90°";
+      break;
+
+    case PANE_GEODESY_DOP:
+      geodesy_render(ctx, content_bounds, &s_globe_state);
+      header_label = "GEODESY & PRECISION";
+      break;
+
+    case PANE_GROUND_TRACK:
+      ground_track_render(ctx, content_bounds, &s_globe_state);
+      header_label = "GROUND TRACKS 2D";
+      break;
+
+    default:
+      break;
+  }
 
   // Render Telemetry HUD
-  hud_render_header(ctx, header_bounds, s_status_text);
-  hud_render_footer(ctx, footer_bounds, &s_globe_state, s_footer_text);
+  hud_render_header(ctx, header_bounds, header_label);
+
+  char footer_buf[48];
+  if (s_globe_state.active_pane == PANE_ORBIT_CAGE && (s_globe_state.rot_yaw_deg != 0 || s_globe_state.rot_pitch_deg != 0)) {
+    snprintf(footer_buf, sizeof(footer_buf), "ROT: %+d° • PANE 1/4", s_globe_state.rot_yaw_deg);
+  } else {
+    snprintf(footer_buf, sizeof(footer_buf), "PANE %d/4 • %s",
+             (int)s_globe_state.active_pane + 1,
+             (s_globe_state.active_pane == PANE_ORBIT_CAGE) ? "ORBIT CAGE" :
+             (s_globe_state.active_pane == PANE_POLAR_SKYPLOT) ? "POLAR RADAR" :
+             (s_globe_state.active_pane == PANE_GEODESY_DOP) ? "DOP MATRIX" : "WORLD MAP");
+  }
+  hud_render_footer(ctx, footer_bounds, &s_globe_state, footer_buf);
 }
 
 // Button click handlers
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  s_globe_state.rot_yaw_deg -= 15;
-  if (s_globe_state.rot_yaw_deg < -180) s_globe_state.rot_yaw_deg += 360;
+  if (s_globe_state.active_pane == PANE_ORBIT_CAGE) {
+    s_globe_state.rot_yaw_deg -= 15;
+    if (s_globe_state.rot_yaw_deg < -180) s_globe_state.rot_yaw_deg += 360;
+  } else {
+    s_globe_state.active_pane = (s_globe_state.active_pane + PANE_COUNT_TOTAL - 1) % PANE_COUNT_TOTAL;
+    storage_save_state(&s_globe_state);
+  }
   layer_mark_dirty(s_canvas_layer);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  s_globe_state.rot_yaw_deg += 15;
-  if (s_globe_state.rot_yaw_deg > 180) s_globe_state.rot_yaw_deg -= 360;
+  if (s_globe_state.active_pane == PANE_ORBIT_CAGE) {
+    s_globe_state.rot_yaw_deg += 15;
+    if (s_globe_state.rot_yaw_deg > 180) s_globe_state.rot_yaw_deg -= 360;
+  } else {
+    s_globe_state.active_pane = (s_globe_state.active_pane + 1) % PANE_COUNT_TOTAL;
+    storage_save_state(&s_globe_state);
+  }
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void up_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  s_globe_state.active_pane = (s_globe_state.active_pane + PANE_COUNT_TOTAL - 1) % PANE_COUNT_TOTAL;
+  vibes_short_pulse();
+  storage_save_state(&s_globe_state);
+  layer_mark_dirty(s_canvas_layer);
+}
+
+static void down_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  s_globe_state.active_pane = (s_globe_state.active_pane + 1) % PANE_COUNT_TOTAL;
+  vibes_short_pulse();
+  storage_save_state(&s_globe_state);
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -89,6 +151,8 @@ static void select_long_click_handler(ClickRecognizerRef recognizer, void *conte
 static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+  window_long_click_subscribe(BUTTON_ID_UP, 500, up_long_click_handler, NULL);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 500, down_long_click_handler, NULL);
   window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
   window_long_click_subscribe(BUTTON_ID_SELECT, 600, select_long_click_handler, NULL);
 }
@@ -137,6 +201,31 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     memcpy(s_globe_state.satellites, sat_data_tuple->value->data, count * sizeof(SatelliteRecord));
   }
 
+  // DOP & Geodesy Telemetry
+  Tuple *pdop_tuple = dict_find(iterator, MESSAGE_KEY_PDOP);
+  if (pdop_tuple) s_globe_state.metrics.pdop_x10 = (uint16_t)pdop_tuple->value->int32;
+
+  Tuple *hdop_tuple = dict_find(iterator, MESSAGE_KEY_HDOP);
+  if (hdop_tuple) s_globe_state.metrics.hdop_x10 = (uint16_t)hdop_tuple->value->int32;
+
+  Tuple *vdop_tuple = dict_find(iterator, MESSAGE_KEY_VDOP);
+  if (vdop_tuple) s_globe_state.metrics.vdop_x10 = (uint16_t)vdop_tuple->value->int32;
+
+  Tuple *tdop_tuple = dict_find(iterator, MESSAGE_KEY_TDOP);
+  if (tdop_tuple) s_globe_state.metrics.tdop_x10 = (uint16_t)tdop_tuple->value->int32;
+
+  Tuple *gdop_tuple = dict_find(iterator, MESSAGE_KEY_GDOP);
+  if (gdop_tuple) s_globe_state.metrics.gdop_x10 = (uint16_t)gdop_tuple->value->int32;
+
+  Tuple *epe_tuple = dict_find(iterator, MESSAGE_KEY_EPE_M);
+  if (epe_tuple) s_globe_state.metrics.epe_dm = (uint16_t)epe_tuple->value->int32;
+
+  Tuple *fix_tuple = dict_find(iterator, MESSAGE_KEY_FIX_TYPE);
+  if (fix_tuple) s_globe_state.metrics.fix_type = (uint8_t)fix_tuple->value->int32;
+
+  Tuple *leap_tuple = dict_find(iterator, MESSAGE_KEY_GPS_LEAP);
+  if (leap_tuple) s_globe_state.metrics.gps_leap_sec = (uint8_t)leap_tuple->value->int32;
+
   storage_save_state(&s_globe_state);
   layer_mark_dirty(s_canvas_layer);
 }
@@ -156,16 +245,28 @@ static void window_unload(Window *window) {
 
 static void init(void) {
   globe_init();
+  skyplot_init();
+  geodesy_init();
+  ground_track_init();
   hud_init();
 
   // Try to load cached state; otherwise load initial defaults
   if (!storage_load_state(&s_globe_state)) {
+    s_globe_state.active_pane = PANE_ORBIT_CAGE;
     s_globe_state.center_lat_deg = 297604;  // 29.7604 N
     s_globe_state.center_lon_deg = -953698; // -95.3698 W
     s_globe_state.show_labels = true;
     s_globe_state.rot_yaw_deg = 0;
     s_globe_state.rot_pitch_deg = 0;
     s_globe_state.sat_count = 0;
+    s_globe_state.metrics.pdop_x10 = 14;
+    s_globe_state.metrics.hdop_x10 = 9;
+    s_globe_state.metrics.vdop_x10 = 11;
+    s_globe_state.metrics.tdop_x10 = 8;
+    s_globe_state.metrics.gdop_x10 = 16;
+    s_globe_state.metrics.epe_dm = 28; // 2.8m
+    s_globe_state.metrics.fix_type = 4; // 3D-DIFF
+    s_globe_state.metrics.gps_leap_sec = 18;
     init_default_planes();
   }
 

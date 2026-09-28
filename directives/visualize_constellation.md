@@ -1,6 +1,6 @@
 ---
 generated_by: "Antigravity AI (Gemini 3.8 Flash)"
-timestamp: "2026-09-28T12:15:00-05:00"
+timestamp: "2026-09-28T12:45:00-05:00"
 title: Visualize Constellation
 verb_noun: visualize_constellation
 layer: 1 — Directive
@@ -9,41 +9,44 @@ applies_to: constellation-watch
 
 # Visualize Constellation
 
-A Pebble Time 2 (emery) interactive watchapp for visualizing global navigation satellite systems (GPS, Galileo, GLONASS, BeiDou) in 3D orbit around a rotating Earth.
+A Pebble Time 2 (emery) interactive geodesy and astrodynamics watchapp for visualizing global navigation satellite systems (GPS, Galileo, GLONASS, BeiDou) across four specialized instrument panes.
 
 ## Goal
-Deliver a responsive, low-power, instrument-grade 3D orthographic globe view on the Pebble Time 2 (200 × 228, 64-color) displaying:
-1. Shaded/gridded Earth centered on the user's location (or custom coordinates).
-2. 3D elliptical orbital rings corresponding to active constellation planes.
-3. Satellite nodes positioned along their true orbital paths.
-4. Optional PRN labels (e.g. `G14`, `E05`) toggleable by the user.
-5. User configuration for constellation toggles (GPS, Galileo, GLONASS, BeiDou), label visibility, and home center location.
-6. Offline caching in persistent watch storage so the constellation renders instantly upon launch.
+Deliver a responsive, low-power, instrument-grade multi-pane field deck on the Pebble Time 2 (200 × 228, 64-color) displaying:
+1. **Pane 1: 3D Orbit Cage (`globe.c`):** Shaded Earth globe centered on user coordinates with 3D elliptical MEO orbital rings and satellite nodes.
+2. **Pane 2: Polar Skyplot (`skyplot.c`):** Classic Garmin 301-style horizon/zenith radar grid ($0^\circ$, $45^\circ$, $90^\circ$ crosshairs, N/S/E/W) with PRN boxes and bottom signal/elevation histogram bars.
+3. **Pane 3: Geodesy & DOP Matrix (`geodesy.c`):** Dense surveyor telemetry ledger with PDOP, HDOP, VDOP, TDOP, GDOP, EPE, constellation tally (GPS/GAL/GLO/BDS), and GPS-UTC leap second offset.
+4. **Pane 4: Ground Track Map (`ground_track.c`):** 2D equirectangular world map with continental coastlines, user location with line-of-sight horizon footprint circle, and sub-satellite ground points.
 
 ## Architecture & Data Flow
 
 ### Layer 1: Phone / PebbleKit JS (`src/pkjs/`)
 - **Settings / Config:** Configurable webview allowing toggling of labels, constellation selection (GPS, Galileo, GLONASS, BeiDou), and home/center coordinates.
 - **Ephemeris / TLE Fetch:** Fetches current CelesTrak GP/TLE data for selected constellations (cached for 24h).
-- **Orbit Propagation:** Uses vendored `satellite.js` to compute satellite ECEF/ECI Cartesian coordinates and orbital plane inclinations/nodes at epoch.
-- **Binary Packing:** Packs satellite records `(constellation_id, prn, x, y, z, elevation_flag)` into a compact binary byte array sent via AppMessage to the watch.
+- **Orbit & Geodesy Engine:** Uses vendored `satellite.js` to compute satellite ECEF/ECI coordinates, observer look angles (azimuth, elevation), sub-satellite geodetic coordinates, and a $4 \times 4$ geometry design matrix inversion for exact Dilution of Precision (PDOP, HDOP, VDOP, TDOP, GDOP, EPE).
+- **Binary Packing:** Packs 13-byte satellite records `(constellation, prn, x, y, z, el, az/2, lat, lon/2, flags)` and DOP telemetry integers into AppMessage payloads.
 
 ### Layer 2: Watch Client C (`src/c/`)
-- **3D Orthographic Engine (`globe.c`):**
-  - Renders central Earth sphere (radius $R_{earth} \approx 28\text{ px}$ with continent vectors and equator/meridian lines).
-  - Projects MEO orbital rings ($R_{orbit} \approx 70\text{–}85\text{ px}$) using fixed-point trigonometric transforms (`sin_lookup`, `cos_lookup`).
-  - Colors: GPS = Amber (`GColorChromeYellow` / `GColorRajah`), Galileo = Cyan (`GColorElectricBlue` / `GColorCeleste`), GLONASS = Green (`GColorMalachite`), BeiDou = Magenta (`GColorMagenta`).
-  - Renders satellite nodes with optional 1-pixel micro font or compact PRN labels (`G14`, `E05`).
-  - Renders user ground beacon (**YOU**) with line-of-sight elevation indicator.
-- **Interaction & Controls (`main.c`):**
-  - **UP / DOWN:** Rotate globe and orbital cage around polar and azimuth axes.
-  - **SELECT (short):** Toggle satellite PRN labels ON / OFF.
-  - **SELECT (long):** Request fresh GPS fix and TLE refresh from phone.
-- **HUD Telemetry (`hud.c`):** Top header with title/time and active fix count; bottom footer with active constellations and HDOP/geometry indicator.
-- **Storage (`storage.c`):** Persists latest constellation state to `persist_write_data()` so app launches with valid telemetry even when phone is disconnected.
+- **Pane 0: 3D Orbit Cage (`globe.c`):** Fixed-point trigonometric orthographic projection of Earth and MEO rings ($R_{orbit} \approx 76\text{ px}$).
+- **Pane 1: Polar Skyplot (`skyplot.c`):** Polar radar with cardinal headings, PRN boxes (solid = locked, hollow = tracking), and elevation histogram.
+- **Pane 2: Geodesy Matrix (`geodesy.c`):** Ruled Gridcore telemetry breakdown of spatial precision and satellite tally.
+- **Pane 3: Ground Track Map (`ground_track.c`):** 2:1 equirectangular map with 429-point continental coastlines and user horizon cone footprint.
+- **HUD Telemetry (`hud.c`):** Dynamic top header and bottom footer with pane indicator and rotation feedback.
+- **Storage (`storage.c`):** Persistent caching of latest constellation state and active pane to Pebble flash memory.
+
+## Interactive Controls
+
+| Button | Action |
+|---|---|
+| **UP (single click)** | Orbit Cage: rotate yaw left (-15°) • Other panes: previous pane |
+| **DOWN (single click)**| Orbit Cage: rotate yaw right (+15°) • Other panes: next pane |
+| **Hold UP** | Cycle to previous instrument pane |
+| **Hold DOWN** | Cycle to next instrument pane |
+| **SELECT (single click)** | Toggle PRN text labels ON / OFF |
+| **Hold SELECT** | Reset view rotation & request fresh satellite sync |
 
 ## Validation Criteria
 - Binary compiles cleanly with `pebble build` targeting the `emery` platform.
-- Memory footprint fits within Pebble's 64 KB app heap.
-- Offline launch displays cached globe and orbits without crashing or waiting indefinitely for AppMessage.
-- Label toggle immediately updates display without redrawing lag.
+- Memory footprint fits within Pebble's 64 KB app heap (~115 KB free heap).
+- Offline launch displays cached telemetry without waiting for AppMessage.
+- Seamless cycling between all 4 panes without memory leaks or graphic corruption.

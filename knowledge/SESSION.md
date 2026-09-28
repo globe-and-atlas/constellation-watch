@@ -2,33 +2,28 @@
 
 ## Current Session
 
-**Goal:** Build constellation-watch: 3D GNSS constellation (GPS, Galileo, GLONASS, BeiDou) orbital visualizer for Pebble Time 2 (Emery).
+**Goal:** Build constellation-watch: 3D GNSS constellation (GPS, Galileo, GLONASS, BeiDou) orbital visualizer for Pebble Time 2 (Emery) with 4-pane instrument deck.
 **Agent:** Antigravity AI
 **Handoff-from:** none
-**Handoff-type:** new-project
+**Handoff-type:** continuation
 **Status:** Completed
 
-## Handoff — 2026-09-28 12:35
+## Handoff — 2026-09-28 12:45
 - **Completed**:
-  - Scaffolded `constellation-watch` repo via `project-template` (`workflow-python` profile).
-  - Authored `directives/visualize_constellation.md` and atomic ISC `task.md`.
-  - Created Pebble Time 2 watchapp in `watchface/` with SDK 4.33.1 / Emery target.
-  - Implemented 3D orthographic globe engine (`globe.c`, `globe.h`) with fixed-point trigonometric projection, simplified continental coastline vectors (`earth_land.h`), 3D orbital rings, and satellite marker/label rendering.
-  - Built interactive controls in `main.c`: UP/DOWN yaw view rotation, SELECT short click to toggle PRN labels, SELECT long click to reset view and refresh.
-  - Implemented offline state persistence (`storage.c`, `storage.h`) saving and restoring constellation state via Pebble persistent storage.
-  - Built PebbleKit JS phone-side layer (`index.js`, `satellite.js`) fetching CelesTrak TLEs, propagating ECEF positions, evaluating observer line-of-sight look angles, and packing binary AppMessage payloads.
-  - Created responsive settings webview (`config.html`) allowing user to toggle PRN labels, select active constellations (GPS, Galileo, GLONASS, BeiDou), and toggle between Phone GPS vs custom Home Latitude/Longitude.
-  - Verified `pebble build` compiles cleanly to `watchface/build/watchface.pbw` (123.5 KB free heap).
-  - Added unit test suite in `tests/test_constellation.py` (5/5 tests passing).
-  - Created `execution/emulator_check.py` for safe emery QEMU testing.
+  - Implemented 4-pane instrument carousel in `main.c`:
+    1. **Pane 1: 3D Orbit Cage (`globe.c`):** 3D orthographic rotating Earth with MEO orbital planes and satellite nodes.
+    2. **Pane 2: Polar Skyplot (`skyplot.c`):** Garmin 301-style horizon/zenith radar grid ($0^\circ$, $45^\circ$, $90^\circ$ crosshairs, N/S/E/W) with solid/hollow PRN lock boxes and bottom signal/elevation histogram bars.
+    3. **Pane 3: Geodesy & DOP Matrix (`geodesy.c`):** Dense surveyor telemetry ledger with PDOP, HDOP, VDOP, TDOP, GDOP, EPE, constellation tally (GPS/GAL/GLO/BDS), and GPS-UTC leap second offset (+18s).
+    4. **Pane 4: Ground Track Map (`ground_track.c`):** 2D equirectangular world map with continental coastlines, user location with line-of-sight horizon footprint circle, and sub-satellite ground points.
+  - Implemented exact $4 \times 4$ geometry design matrix inversion in PKJS (`index.js`) calculating true PDOP, HDOP, VDOP, TDOP, GDOP, and EPE from visible line-of-sight look vectors.
+  - Enhanced binary payload with 13-byte packed satellite records containing ECEF coordinates, local azimuth, local elevation, and sub-satellite lat/lon coordinates.
+  - Added button interactions: hold UP/DOWN to cycle panes with haptic pulse; single click UP/DOWN to rotate globe in Pane 1 or cycle panes in Panes 2–4; single click SELECT to toggle labels.
+  - Verified `pebble build` clean compilation (115.6 KB free heap).
+  - All 6 unit tests passing (`tests/test_constellation.py`).
 - **Commands**:
-  - `python3 project-template/scripts/create_project.py --name constellation-watch --profile workflow-python`
-  - `python3 execution/build_earth_data.py`
-  - `cd watchface && pebble build` (exit 0)
+  - `cd watchface && pebble clean && pebble build` (exit 0)
   - `python3 -m pytest tests/ -v` (exit 0)
-  - `python3 execution/emulator_check.py --dry-run` (exit 0)
-- **Issues found**: Fixed `-Werror` unused variable warnings in `globe.c` and `hud.c`.
-- **Verifier note**: Subagent spawning tool not present in tool schema; verified deterministically via clean `pebble build` (exit 0) and automated test suite (`tests/test_constellation.py`, 5/5 passing).
+- **Issues found**: None.
 - **Left undone**: None.
 - **Next**: Connect to physical watch or launch live QEMU emulator when ready.
 
@@ -39,7 +34,4 @@
 - 2026-09-28 12:25 — Generated 429-point continental coastline header from Natural Earth data
 - 2026-09-28 12:32 — Implemented C 3D globe engine, HUD, offline storage, PKJS TLE pipeline, and settings webview
 - 2026-09-28 12:35 — Clean `pebble build` (watchface.pbw) and 5/5 pytest passing
-
-## Checkpoint Log
-
-- 2026-09-28 12:35 — commit: feat: implement 3D GNSS constellation orbital watchapp for emery | README.md,directives/visualize_constellation.md,execution/build_earth_data.py,execution/emulator_check.py,knowledge/SESSION.md
+- 2026-09-28 12:45 — Implemented full 4-pane instrument deck (Polar Skyplot, Geodesy Matrix, Ground Track Map) with exact DOP matrix solver and 6/6 tests passing
