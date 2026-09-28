@@ -6,7 +6,7 @@
 **Agent:** OpenAI Codex (GPT-6)
 **Handoff-from:** Antigravity AI
 **Handoff-type:** cold-eyes
-**Status:** In progress — first-public accuracy contract recorded; source review found receiver telemetry is fabricated from orbital geometry.
+**Status:** Partially complete — Constellation 0.1.2 is on GitHub and RePebble with matching PBW bytes; public listing description still needs the linked owner account.
 
 ## Handoff — 2026-09-28 12:45
 - **Completed**:
@@ -46,3 +46,6 @@
 - 2026-09-28 — OpenAI Codex (GPT-6): removed synthetic GNSS receiver metrics, corrected catalog IDs, DOP invalid states, location fallback, arbitrary footprint; 4 Node and 8 Python tests pass; clean Emery build and 4 panes visually reviewed.
 - 2026-09-28 — All four clean Emery panes captured and visually inspected; current public elements show TLE age explicitly; release text and package version 0.1.2 dry-run aligned.
 - 2026-09-28 — OpenAI Codex (GPT-6): cold-eyes review caught stale/truncated Constellation Store renders; refreshed all four from final Emery build, shortened headings, moved elevation legend clear of bars, and added exact process cleanup. Final 9 pytest and 4 Node tests pass; Store UUID maps to app 10f46ae849224d009644f7e8.
+- 2026-09-28 15:30 — commit: fix: correct Constellation orbital geometry claims | README.md,directives/visualize_constellation.md,execution/emulator_check.py,execution/verify_release.py,knowledge/ERRORS.md
+- 2026-09-28 15:30 — pushed commit `5dc43a4` to `origin/main`; published GitHub release `v0.1.2` and RePebble 0.1.2 with four screenshots. Public Store PBW SHA-256 matches local build. The public app description still carries legacy GNSS language because Dev Portal account `globe-and-atlas` has no managed apps; listing text edit is not complete.
+- 2026-09-28 15:37 — public listing now resolves to 0.1.2; public PBW metadata and SHA-256 match local production artifact. Four public screenshot images match their corresponding new Store captures with only changing clock pixels. Public description still contains legacy GNSS tracking text; Dev Portal profile `globe-and-atlas` shows no apps to manage.

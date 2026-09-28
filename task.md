@@ -75,7 +75,10 @@ Legacy receiver-oriented checkboxes above document the previous implementation; 
 - [x] Replace receiver and signal claims with geometric-model language.
 - [x] Remove synthetic precision and fix outputs.
 - [x] Correct identifiers, stale-data/location states, and map footprint wording.
-- [x] Update project and Store descriptions and assets.
+- [x] Update project copy, local Store description, and Store screenshots.
+- [ ] Replace the legacy receiver claims in the live RePebble listing description.
 - [x] Build, test, and inspect emulator renders.
-- [ ] Run an independent verifier.
-- [ ] Push GitHub and publish RePebble editions.
+- [x] Run an independent verifier for the source, Store copy, and final renders.
+- [x] Push GitHub commit `5dc43a4` and publish release `v0.1.2`.
+- [x] Publish RePebble version `0.1.2` and verify its PBW bytes match the production build.
+- [ ] Update public RePebble description to remove legacy GNSS receiver claims; publisher portal currently has no managed apps for the authenticated `globe-and-atlas` account.
