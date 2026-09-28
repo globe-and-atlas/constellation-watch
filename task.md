@@ -76,7 +76,8 @@ Legacy receiver-oriented checkboxes above document the previous implementation; 
 - [x] Remove synthetic precision and fix outputs.
 - [x] Correct identifiers, stale-data/location states, and map footprint wording.
 - [x] Update project copy, local Store description, and Store screenshots.
-- [ ] Replace the legacy receiver claims in the live RePebble listing description.
+- [x] Save corrected receiver/accuracy copy in the linked developer dashboard.
+- [ ] Confirm the public RePebble page serves the corrected Constellation description; current page still serves legacy copy after save.
 - [x] Build, test, and inspect emulator renders.
 - [x] Run an independent verifier for the source, Store copy, and final renders.
 - [x] Push GitHub commit `5dc43a4` and publish release `v0.1.2`.
