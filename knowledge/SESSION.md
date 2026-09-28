@@ -58,3 +58,4 @@
 
 - 2026-09-28 16:20 — Corrected Constellation 0.1.0 and 0.1.1 historical release notes in authenticated dashboard; stale task blocker corrected against visible live account/listing.
 - 2026-09-28 — Confirmed authenticated dashboard account Daniel Bally lists both apps. Corrected Constellation 0.1.0/0.1.1 release notes in dashboard; after reload and cache-busted public changelog navigation, public page still serves original GNSS radar/observer-footprint wording. Tracked public propagation as incomplete.
+- 2026-09-28 16:20 — commit: docs: record public listing and changelog verification | knowledge/ERRORS.md,knowledge/SESSION.md,knowledge/procedural/publish_release.md,task.md
